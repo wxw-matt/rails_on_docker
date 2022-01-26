@@ -65,32 +65,37 @@ def push_image(image_tag, output_stdout=False):
     return run_docker_cmd(cmd, output_stdout=output_stdout)
 
 
-def build_images(versions):
+def build_image(image_info):
+    version = image_info['version']
+    image_tag = image_info['image_tag']
+    docker_cmd = image_info['docker_cmd']
+    dockerfile = image_info['dockerfile']
+    return run_docker_cmd(docker_cmd)
+
+def build_images(versions, push=False):
     versions = versions or get_supported_versions()
     dockerfiles = collect_dockerfiles(versions)
     if dockerfiles:
         print(f'{len(dockerfiles)} Dockerfiles found')
         for major,v in dockerfiles.items():
             for image_info in v:
-                version = image_info['version']
                 image_tag = image_info['image_tag']
-                docker_cmd = image_info['docker_cmd']
-                dockerfile = image_info['dockerfile']
-                print(f'Building {dockerfile}...')
-                if run_docker_cmd(docker_cmd).returncode == 0:
+                print(f'Building {image_info["dockerfile"]}...')
+                if build_image(image_info).returncode == 0:
                     print('Build successfully')
-                    print(f'Pushing {image_tag}')
-                    if push_image(image_tag, output_stdout=True).returncode == 0:
-                        print(f'Pushed {image_tag} successfully')
-                    else:
-                        print(f"Failed to push {image_tag}")
+                    if push:
+                        print(f'Pushing {image_tag}')
+                        if push_image(image_tag, output_stdout=True).returncode == 0:
+                            print(f'Pushed {image_tag} successfully')
+                        else:
+                            print(f"Failed to push {image_tag}")
                 else:
                     print("Couldn't find Dockerfiles for major version: " + major)
 
 def build(args):
     print("Build images")
     versions = [args.version]
-    build_images(versions)
+    build_images(versions, push=args.push)
 
 def project(args):
     print("project")
@@ -102,7 +107,7 @@ subparsers = parser.add_subparsers(help='sub-command help')
 
 parser_build = subparsers.add_parser('build', help='Build rails images')
 parser_build.add_argument('-v', '--version', type=str, help='Build a specific version')
-parser_build.add_argument('-p', '--push', type=str, help='Push the images to Docker hub after building')
+parser_build.add_argument('-p', '--push', action='store_true', help='Push the images to Docker hub after building')
 parser_build.set_defaults(func=build)
 
 parser_project = subparsers.add_parser('project', help='Create a new rails project')
