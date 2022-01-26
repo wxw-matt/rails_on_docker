@@ -14,12 +14,13 @@ def get_rails_image_name(version):
     return versions[version]
 
 # Docker version 20.10.11, build dea9396
-def generate_rails_project(name, options, rails_options):
-    image_name = get_rails_image_name(options.rails)
+def generate_rails_project(options, rails_options):
+    image_name = get_rails_image_name(options.version)
     uid = os.getuid()
     gid = os.getgid()
     cwd = os.getcwd()
-    args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}', "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app", image_name, "rails"] + rails_options
+    args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}',
+        "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app", image_name, "rails"] + rails_options
     subprocess.run(args)
 
 def get_supported_versions():
@@ -102,8 +103,14 @@ def project(args):
     print("project")
 
 def new_project(args):
+    print("Create a new Rails project")
     print(args)
-    print("new_project")
+    project_name = args.name
+    rails_version = args.version
+    database = args.database
+    rails_options = ['new', project_name, f'--database={database}']
+    import pdb;pdb.set_trace()
+    generate_rails_project(args, rails_options)
 
 parser = argparse.ArgumentParser(prog=NAME)
 subparsers = parser.add_subparsers(help='sub-command help')
@@ -119,6 +126,7 @@ parser_project_subparsers = parser_project.add_subparsers(help="subcommands for 
 parser_new = parser_project_subparsers.add_parser('new', help='Create a new rails project')
 parser_new.add_argument('name', help='Project name')
 
+parser_new.add_argument('-v', '--version', dest="version", action='store', help='Specify rails version')
 parser_new.add_argument('-m', '--mysql', dest="database", action='store_const', const="mysql", help='Using MySQL')
 parser_new.add_argument('-p', '--pq', dest="database", action='store_const', const="postgresql",  help='Using Postgresql')
 parser_new.add_argument('-s', '--sqlite', dest="database", action='store_const', const="sqlite", help='Using SQLite3')
