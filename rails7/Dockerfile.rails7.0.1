@@ -27,18 +27,23 @@ RUN set -eux; \
                 imagemagick \
                 curl-dev \
                 vips-dev \
-
         ;
-RUN mkdir /bundle
-RUN chmod a+x /bundle
+RUN mkdir -p /bundle/cache /app
 ENV GEM_HOME=/bundle
 ENV PATH=$PATH:/bundle/bin
 ENV HOME=/app
 RUN gem install nokogiri --platform=ruby
 RUN gem install rails -v 7.0.1
+
+# Pre-install gems for a typical Rails project
 RUN cd /tmp && rails new for_installing_gems_mysql --database=mysql
 RUN cd /tmp && rails new for_installing_gems_postgres --database=postgresql
 RUN cd /tmp && rails new for_installing_gems_sqlite3 --database=sqlite3
+
+# make bundle directory writable
+RUN chmod -Rf a+rw /bundle /app
+
+# Cleanup
 RUN rm -rf /tmp/for_installing_gems_mysql
 RUN rm -rf /tmp/for_installing_gems_postgres
 RUN rm -rf /tmp/for_installing_gems_sqlite3

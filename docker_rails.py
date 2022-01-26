@@ -24,8 +24,7 @@ def generate_rails_project(options, rails_options):
     return run_docker_cmd(args)
 
 def get_supported_versions():
-    return [e.replace('rails') for e in glob.glob(f'rails[2-7]')]
-
+    return [e.replace('rails', '') for e in glob.glob(f'rails[2-7]')]
 
 def run_docker_cmd(cmd, output_error=True, output_stdout=True):
     if output_stdout:
@@ -91,11 +90,13 @@ def build_images(versions, push=False):
                         else:
                             print(f"Failed to push {image_tag}")
                 else:
-                    print("Couldn't find Dockerfiles for major version: " + major)
+                    print(f"Failed to build {image_tag}: {image_info}")
+    else:
+        print("Couldn't find Dockerfiles for version: " + str(versions))
 
 def build(args):
-    print("Build images")
-    versions = [args.version]
+    print("Building images")
+    versions = [args.version] if args.version else None
     build_images(versions, push=args.push)
 
 def project(args):
