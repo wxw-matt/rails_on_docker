@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+import sys, os, glob
+import subprocess
+import argparse
+import configparser
+
+NAME="rod"
+
+versions = {
+        '7.0.1': 'wxwmatt/rails:7.0.1-alpine3.15'
+}
+
+def get_rails_image_name(version):
+    global versions
+    return versions[version]
+
+def docker_base_cmd(full_tag):
+    uid = os.getuid()
+    gid = os.getgid()
+    cwd = os.getcwd()
+    args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}',
+        "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app", full_tag]
+    return args
+
+
+def rails_base_cmd(full_tag):
+    return docker_base_cmd(full_tag) + ['rails']
+
+def rails_generate_cmd(full_tag):
+    return rails_base_cmd(full_tag) + ['generate']
+
+def rails_generate_controller_cmd(full_tag):
+    return rails_generate_cmd(full_tag) + ['controller']
+
+def rails_generate_model_cmd(full_tag):
+    return rails_generate_cmd(full_tag) + ['model']
+
+def rails_generate_scaffold_cmd(full_tag):
+    return rails_generate_cmd(full_tag) + ['scaffold']
+
+def dockerfile_template(image_tag):
+    dockerfile_template = f"""
+FROM {image_tag}
+
+RUN mkdir -p /app
+ENV HOME /app
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+"""
+    return dockerfile_template
+
+def build_local_rails_image(project_dir, image_tag):
+    text = dockerfile_template(image_tag)
+    print(text)
+
+# Docker version 20.10.11, build dea9396
+def do_generate_controller(full_tag, options):
+    args = rails_generate_controller_cmd(full_tag) + [options.NAME] + options.actions
+    run_docker_cmd(args)
+
+def do_generate_model(full_tag, options):
+    args = rails_generate_model_cmd(full_tag) + [options.NAME] + options.fields
+    run_docker_cmd(args)
+
+def do_generate_scaffold(full_tag, options):
+    args = rails_generate_scaffold_cmd(full_tag) + [options.NAME] + options.fields
+    run_docker_cmd(args)
+
+def run_docker_cmd(cmd, output_error=True, output_stdout=True):
+    if output_stdout:
+        result = subprocess.run(cmd)
+    else:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE)
+    if result.returncode != 0 and output_error:
+        print(result.stdout.decode("UTF-8"))
+    return result
+
+
+def project(args):
+    print(args)
+    print("project")
+
+def do_build_image(tag, rails_image_tag, project_dir):
+    with open(f'{project_dir}/Dockerfile', 'w+') as f:
+        f.write(dockerfile_template(rails_image_tag))
+
+    cmd = ['docker', 'build', '-t', tag, project_dir]
+    run_docker_cmd(cmd)
+
+def read_config(config_file):
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    return config
+
+def build_image(args):
+    print("Create Rails project image")
+    print(args)
+    project_dir = os.getcwd()
+
+    tag = project_dir.split('/')[-1]
+    if args.tag:
+        if ':' in args.tag:
+            tag = args.tag
+        else:
+            tag = f'{tag}:{args.tag}'
+    else:
+        tag = tag + ":latest"
+
+    rails_image_tag = 'wxwmatt/rails:7.0.1-alpine3.15'
+    with open(f'{project_dir}/Dockerfile', 'w+') as f:
+        f.write(dockerfile_template(rails_image_tag))
+
+    cmd = ['docker', 'build', '-t', tag, project_dir]
+    if run_docker_cmd(cmd).returncode == 0:
+        fn = f'{project_dir}/.rod'
+        config = read_config(fn)
+        if 'image' not in config:
+            config['image'] = {}
+        with open(fn, 'w+') as configfile:
+            config['image']['tag'] = tag
+            config['image']['base'] = rails_image_tag
+            config.write(configfile)
+
+def image(args):
+    print(args)
+
+def generate(args):
+    print(args)
+
+def generate_controller(args):
+    cwd = os.getcwd()
+    config = read_config(f'{cwd}/.rod')
+    full_tag = config['image']['tag']
+    do_generate_controller(full_tag, args)
+
+def generate_model(args):
+    cwd = os.getcwd()
+    config = read_config(f'{cwd}/.rod')
+    full_tag = config['image']['tag']
+    do_generate_model(full_tag, args)
+
+def generate_scaffold(args):
+    cwd = os.getcwd()
+    config = read_config(f'{cwd}/.rod')
+    full_tag = config['image']['tag']
+    do_generate_scaffold(full_tag, args)
+
+
+parser = argparse.ArgumentParser(prog=NAME)
+subparsers = parser.add_subparsers(help='sub-command help')
+
+## Generate
+parser_generate = subparsers.add_parser('generate',aliases=['g'], help='Generate controllers, models and scaffolds')
+parser_generate.set_defaults(func=generate)
+
+generate_subparsers = parser_generate.add_subparsers(help="Generate a controller")
+## Generate controllers
+controller_parser = generate_subparsers.add_parser('controller', help='Generate a controller')
+controller_parser.add_argument('NAME', help='Controller name')
+controller_parser.add_argument('actions', nargs='*', type=str, help='Controller name')
+controller_parser.set_defaults(func=generate_controller)
+
+## Generate models
+model_parser = generate_subparsers.add_parser('model', help='Generate a model')
+model_parser.add_argument('NAME', help='Model name')
+model_parser.add_argument('fields', nargs='*', type=str, help='Format: [field[:type][:index]')
+model_parser.set_defaults(func=generate_model)
+
+## Generate scaffolds
+scaffold_parser = generate_subparsers.add_parser('scaffold', help='Generate a scaffold')
+scaffold_parser.add_argument('NAME', help='Scaffold name')
+scaffold_parser.add_argument('fields', nargs='*', type=str, help='Format: [field[:type][:index]')
+scaffold_parser.set_defaults(func=generate_scaffold)
+
+parser_image = subparsers.add_parser('image', help='Build Rails image')
+
+parser_image_subparsers = parser_image.add_subparsers(help="subcommands for Rails images")
+parser_build = parser_image_subparsers.add_parser('build', help='Create a build rails image')
+
+parser_build.add_argument('-t', '--tag', dest="tag", action='store', help='Specify image tag')
+parser_build.set_defaults(func=build_image)
+parser_image.set_defaults(func=image)
+
+
+if len(sys.argv) == 1:
+    parser.print_help()
+    exit(1)
+# parse some argument lists
+opts = parser.parse_args(sys.argv[1:])
+opts.func(opts)
