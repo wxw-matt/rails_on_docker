@@ -98,11 +98,14 @@ def build(args):
     build_images(versions, push=args.push)
 
 def project(args):
+    print(args)
     print("project")
 
+def new_project(args):
+    print(args)
+    print("new_project")
 
 parser = argparse.ArgumentParser(prog=NAME)
-parser.add_argument('--foo', action='store_true', help='foo help')
 subparsers = parser.add_subparsers(help='sub-command help')
 
 parser_build = subparsers.add_parser('build', help='Build rails images')
@@ -111,9 +114,15 @@ parser_build.add_argument('-p', '--push', action='store_true', help='Push the im
 parser_build.set_defaults(func=build)
 
 parser_project = subparsers.add_parser('project', help='Create a new rails project')
-parser_project.add_argument('--mysql', dest="database", action='store_const', const="mysql", help='Using MySQL')
-parser_project.add_argument('--pq', dest="database", action='store_const', const="postgresql",  help='Using Postgresql')
-parser_project.add_argument('--sqlite', dest="database", action='store_const', const="sqlite", help='Using SQLite3')
+
+parser_project_subparsers = parser_project.add_subparsers(help="subcommands for project")
+parser_new = parser_project_subparsers.add_parser('new', help='Create a new rails project')
+parser_new.add_argument('name', help='Project name')
+
+parser_new.add_argument('-m', '--mysql', dest="database", action='store_const', const="mysql", help='Using MySQL')
+parser_new.add_argument('-p', '--pq', dest="database", action='store_const', const="postgresql",  help='Using Postgresql')
+parser_new.add_argument('-s', '--sqlite', dest="database", action='store_const', const="sqlite", help='Using SQLite3')
+parser_new.set_defaults(func=new_project)
 parser_project.set_defaults(func=project)
 
 
