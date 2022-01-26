@@ -22,27 +22,77 @@ def generate_rails_project(name, options, rails_options):
     args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}', "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app", image_name, "rails"] + rails_options
     subprocess.run(args)
 
-def build_images(versions):
+def get_supported_versions():
+    return [e.replace('rails') for e in glob.glob(f'rails[2-7]')]
+
+
+def run_docker_cmd(cmd, output_error=True, output_stdout=False):
+    if output_stdout:
+        result = subprocess.run(cmd)
+    else:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE)
+    if result.returncode != 0 and output_error:
+        print(result.stdout.decode("UTF-8"))
+    return result
+
+def collect_dockerfiles(versions):
+    dockerfiles = {}
     for major in versions:
-        for dockerfile in glob.glob(f'rails{major}/Dockerfile.rails*'):
-            version = dockerfile.replace(f'rails{major}/Dockerfile.rails',"")
-            image=f'wxwmatt/rails:{version}-alpine3.15'
-            args = ["docker", "build", "-f", dockerfile, "-t", image, f'rails{major}/']
-            print(f'Build {dockerfile}...');
-            result = subprocess.run(args, stdout=subprocess.PIPE)
-            if result.returncode != 0:
-                print(result.stdout.replace("\\n","\n").decode("UTF-8"))
-            else:
-                print('Build successfully')
+        files = glob.glob(f'rails{major}/Dockerfile.rails*')
+        if files:
+            image_info = []
+            for f in files:
+                version = f.replace(f'rails{major}/Dockerfile.rails',"")
+                image_tag = f'wxwmatt/rails:{version}-alpine3.15'
+                cmd = ["docker", "build", "-f", f, "-t", image_tag, f'rails{major}/']
+                image_info.append({
+                    'version': version,
+                    'image_tag': image_tag,
+                    'docker_cmd': cmd,
+                    'dockerfile': f
+                })
+            dockerfiles[major]=image_info
+    return dockerfiles
+
+
+def push_images(image_tags):
+    for image_tag in image_tags:
+        cmd = ["docker", "push", image_tag]
+        run_docker_cmd(cmd)
+
+def push_image(image_tag, output_stdout=False):
+    cmd = ["docker", "push", image_tag]
+    return run_docker_cmd(cmd, output_stdout=output_stdout)
+
+
+def build_images(versions):
+    versions = versions or get_supported_versions()
+    dockerfiles = collect_dockerfiles(versions)
+    if dockerfiles:
+        print(f'{len(dockerfiles)} Dockerfiles found')
+        for major,v in dockerfiles.items():
+            for image_info in v:
+                version = image_info['version']
+                image_tag = image_info['image_tag']
+                docker_cmd = image_info['docker_cmd']
+                dockerfile = image_info['dockerfile']
+                print(f'Building {dockerfile}...')
+                if run_docker_cmd(docker_cmd).returncode == 0:
+                    print('Build successfully')
+                    print(f'Pushing {image_tag}')
+                    if push_image(image_tag, output_stdout=True).returncode == 0:
+                        print(f'Pushed {image_tag} successfully')
+                    else:
+                        print(f"Failed to push {image_tag}")
+                else:
+                    print("Couldn't find Dockerfiles for major version: " + major)
 
 def build(args):
     print("Build images")
     versions = [args.version]
-    import pdb;pdb.set_trace()
     build_images(versions)
 
 def project(args):
-    import pdb;pdb.set_trace()
     print("project")
 
 
@@ -52,6 +102,7 @@ subparsers = parser.add_subparsers(help='sub-command help')
 
 parser_build = subparsers.add_parser('build', help='Build rails images')
 parser_build.add_argument('-v', '--version', type=str, help='Build a specific version')
+parser_build.add_argument('-p', '--push', type=str, help='Push the images to Docker hub after building')
 parser_build.set_defaults(func=build)
 
 parser_project = subparsers.add_parser('project', help='Create a new rails project')
