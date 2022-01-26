@@ -21,13 +21,13 @@ def generate_rails_project(options, rails_options):
     cwd = os.getcwd()
     args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}',
         "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app", image_name, "rails"] + rails_options
-    subprocess.run(args)
+    return run_docker_cmd(args)
 
 def get_supported_versions():
     return [e.replace('rails') for e in glob.glob(f'rails[2-7]')]
 
 
-def run_docker_cmd(cmd, output_error=True, output_stdout=False):
+def run_docker_cmd(cmd, output_error=True, output_stdout=True):
     if output_stdout:
         result = subprocess.run(cmd)
     else:
@@ -129,7 +129,7 @@ parser_new.add_argument('name', help='Project name')
 parser_new.add_argument('-v', '--version', dest="version", action='store', help='Specify rails version')
 parser_new.add_argument('-m', '--mysql', dest="database", action='store_const', const="mysql", help='Using MySQL')
 parser_new.add_argument('-p', '--pq', dest="database", action='store_const', const="postgresql",  help='Using Postgresql')
-parser_new.add_argument('-s', '--sqlite', dest="database", action='store_const', const="sqlite", help='Using SQLite3')
+parser_new.add_argument('-s', '--sqlite3', dest="database", action='store_const', const="sqlite3", help='Using SQLite3')
 parser_new.set_defaults(func=new_project)
 parser_project.set_defaults(func=project)
 
@@ -139,4 +139,4 @@ if len(sys.argv) == 1:
     exit(1)
 # parse some argument lists
 opts = parser.parse_args(sys.argv[1:])
-opts.func(opts);
+opts.func(opts)
