@@ -15,17 +15,24 @@ def get_rails_image_name(version):
     global _versions
     return _versions[version]
 
-def docker_base_cmd(full_tag):
+def docker_base_cmd(full_tag, args_for_docker=[]):
     uid = os.getuid()
     gid = os.getgid()
     cwd = os.getcwd()
     args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}',
-        "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app", full_tag]
+        "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app"] + args_for_docker + [full_tag]
     return args
 
 
-def rails_base_cmd(full_tag):
-    return docker_base_cmd(full_tag) + ['rails']
+def rails_base_cmd(full_tag, args_for_docker=[]):
+    return docker_base_cmd(full_tag, args_for_docker) + ['rails']
+
+def rails_project_command(command, options, args_for_docker=[]):
+    cwd = os.getcwd()
+    config = read_config(f'{cwd}/.rod')
+    full_tag = config['image']['tag']
+    args = rails_base_cmd(full_tag, args_for_docker) + [command] + options
+    run_docker_cmd(args)
 
 def rails_generate_cmd(full_tag):
     return rails_base_cmd(full_tag) + ['generate']
@@ -167,6 +174,18 @@ def new_project(args):
     rails_options = ['new', project_name, f'--database={database}']
     generate_rails_project(args, rails_options)
 
+def rails_commands(args):
+    print(args)
+
+def rails_command_server(args):
+    port = args.port or '3000'
+    options = ['-p', port, '-b', '0.0.0.0']
+    rails_project_command('server', options, ['-p', f'{port}:{port}'])
+
+def rails_command_console(args):
+    options = []
+    rails_project_command('console', options)
+
 def tasks(args):
     print(args)
 
@@ -229,8 +248,24 @@ parser_new.add_argument('-s', '--sqlite3', dest="database", action='store_const'
 parser_new.set_defaults(func=new_project)
 parser_project.set_defaults(func=project)
 
+# Rails commands
+parser_rails = subparsers.add_parser('rails', help='Build Rails rails')
+parser_rails.set_defaults(func=rails_commands)
+
+## Rails server
+parser_rails_subparsers = parser_rails.add_subparsers(help="subcommands for Rails railss")
+parser_server = parser_rails_subparsers.add_parser('server', aliases=['s'], help='Create a server Rails rails')
+
+parser_server.add_argument('-p', '--port', dest="port", action='store', help='Specify the port for the server')
+parser_server.set_defaults(func=rails_command_server)
+
+## Rails console
+parser_console = parser_rails_subparsers.add_parser('console', help='Create a console Rails rails')
+
+parser_console.set_defaults(func=rails_command_console)
+
 # Rake tasks
-parser_tasks = subparsers.add_parser('tasks',aliases=['t'], help='Execute rake tasks')
+parser_tasks = subparsers.add_parser('tasks', aliases=['t'], help='Execute rake tasks')
 parser_tasks.set_defaults(func=tasks)
 
 parser_tasks.add_argument('task', nargs='+', type=str, help='Rake tasks, such as db:migrate db:rollback')
