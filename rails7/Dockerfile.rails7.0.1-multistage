@@ -1,5 +1,4 @@
-# Tag: wxwmatt/rails:7.0.1-alpine3.15
-FROM ruby:3.0.3-alpine3.15
+FROM ruby:3.0.3-alpine3.15 as builder
 
 RUN set -eux; \
         apk add --no-cache \
@@ -8,13 +7,8 @@ RUN set -eux; \
                 postgresql-dev \
                 ruby-dev \
                 nodejs \
-                npm \
-                yarn \
-                make \
                 musl-dev \
                 build-base \
-                tzdata \
-                curl \
                 git \
 #https://pkgs.alpinelinux.org/package/edge/main/aarch64/build-base
                 build-base \
@@ -25,7 +19,6 @@ RUN set -eux; \
                 ca-certificates \
                 libffi-dev \
                 libsodium-dev \
-                imagemagick \
                 curl-dev \
                 vips-dev \
         ;
@@ -41,10 +34,41 @@ RUN cd /tmp && rails new for_installing_gems_mysql --database=mysql
 RUN cd /tmp && rails new for_installing_gems_postgres --database=postgresql
 RUN cd /tmp && rails new for_installing_gems_sqlite3 --database=sqlite3
 
-# make bundle directory writable
-RUN chmod -Rf a+rw /bundle /app
-
 # Cleanup
 RUN rm -rf /tmp/for_installing_gems_mysql
 RUN rm -rf /tmp/for_installing_gems_postgres
 RUN rm -rf /tmp/for_installing_gems_sqlite3
+RUN rm -rf /bundle/cache /bundler/gems/*/.git
+
+FROM ruby:3.0.3-alpine3.15
+
+RUN set -eux; \
+        apk add --no-cache \
+                ruby-dev \
+                nodejs \
+                npm \
+                yarn \
+                make \
+                build-base \
+                tzdata \
+                curl \
+                git \
+#https://pkgs.alpinelinux.org/package/edge/main/aarch64/build-base
+                build-base \
+#https://nokogiri.org/tutorials/installing_nokogiri.html#linux-musl-error-loading-shared-library
+                gcompat \
+#https://en.wikipedia.org/wiki/BusyBox
+                busybox \
+                ca-certificates \
+                imagemagick \
+        ;
+
+ENV GEM_HOME=/bundle
+ENV PATH=$PATH:/bundle/bin
+ENV HOME=/app
+
+COPY --from=builder /bundle/ /bundle
+COPY --from=builder /usr/lib /usr/lib
+
+# make bundle directory writable
+RUN chmod -f a+rw /bundle

@@ -6,14 +6,14 @@ import configparser
 
 NAME="rod"
 
-versions = {
+_versions = {
     '7.0.1': 'wxwmatt/rails:7.0.1-alpine3.15',
     '7':'wxwmatt/rails:7.0.1-alpine3.15'
 }
 
 def get_rails_image_name(version):
-    global versions
-    return versions[version]
+    global _versions
+    return _versions[version]
 
 def docker_base_cmd(full_tag):
     uid = os.getuid()
@@ -81,7 +81,7 @@ def project(args):
     print(args)
     print("project")
 
-def do_build_image(image_tag, project_dir):
+def do_build_image(rails_base_tag, image_tag, project_dir):
     tag = project_dir.split('/')[-1]
     if image_tag:
         if ':' in image_tag:
@@ -91,9 +91,8 @@ def do_build_image(image_tag, project_dir):
     else:
         tag = tag + ":latest"
 
-    rails_image_tag = 'wxwmatt/rails:7.0.1-alpine3.15'
     with open(f'{project_dir}/Dockerfile', 'w+') as f:
-        f.write(dockerfile_template(rails_image_tag))
+        f.write(dockerfile_template(rails_base_tag))
 
     cmd = ['docker', 'build', '-t', tag, project_dir]
     if run_docker_cmd(cmd).returncode == 0:
@@ -103,7 +102,7 @@ def do_build_image(image_tag, project_dir):
             config['image'] = {}
         with open(fn, 'w+') as configfile:
             config['image']['tag'] = tag
-            config['image']['base'] = rails_image_tag
+            config['image']['base'] = rails_base_tag
             config.write(configfile)
 
 def read_config(config_file=f'{os.getcwd()}/.rod'):
@@ -112,10 +111,11 @@ def read_config(config_file=f'{os.getcwd()}/.rod'):
     return config
 
 def build_image(args):
-    print("Create Rails project image")
-    print(args)
+    config = read_config()
+    tag_name = args.tag or "latest"
+    print(f"Create Rails project image with tag `{tag_name}` based on `{config['image']['base']}`")
     project_dir = os.getcwd()
-    do_build_image(args.tag, project_dir)
+    do_build_image(config['image']['base'], args.tag, project_dir)
 
 def image(args):
     print(args)
@@ -141,10 +141,6 @@ def generate_scaffold(args):
     full_tag = config['image']['tag']
     do_generate_scaffold(full_tag, args)
 
-def get_rails_image_name(version):
-    global versions
-    return versions[version]
-
 # Docker version 20.10.11, build dea9396
 def generate_rails_project(options, rails_options):
     image_name = get_rails_image_name(options.version)
@@ -153,7 +149,7 @@ def generate_rails_project(options, rails_options):
     cwd = os.getcwd()
     args = rails_base_cmd(image_name) + rails_options
     if run_docker_cmd(args).returncode == 0:
-        do_build_image(None, os.path.join(cwd, rails_options[1]))
+        do_build_image(image_name, os.path.join(cwd, rails_options[1]))
 
 
 def project(args):
@@ -161,6 +157,9 @@ def project(args):
     print("project")
 
 def new_project(args):
+    if not args.version:
+        print ("Please specify a rails version, like `-v 7`")
+        exit(1)
     print("Create a new Rails project")
     project_name = args.name
     rails_version = args.version
