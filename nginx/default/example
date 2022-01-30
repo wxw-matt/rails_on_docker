@@ -3,10 +3,32 @@ server {
    server_name example.com;
 
    location / {
+       # example_backend is the service name
        proxy_pass http://example_backend;
        proxy_set_header Host $host;
        proxy_set_header X-Real-IP $remote_addr;
    }
 }
+
+# Service example
+#version: '3.5'
+#services:
+#  example_backend:
+#    image: nginx:alpine
+#    restart: unless-stopped
+#    volumes:
+#      - /etc/localtime:/etc/localtime:ro
+#      - ./:/usr/share/nginx/html:ro
+#    networks:
+#      - external_proxy-network
+#      - backend-network
+#    ports:
+#      - "8080:80"
+#
+#networks:
+#  external_proxy-network:
+#    external: true
+#  backend-network:
+#    driver: bridge
 
 # vim:ft=nginx
