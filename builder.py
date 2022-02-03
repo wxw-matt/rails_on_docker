@@ -9,12 +9,13 @@ def get_supported_versions():
     return [e.replace('rails', '') for e in glob.glob(f'rails[2-7]')]
 
 def run_docker_cmd(cmd, output_error=True, output_stdout=True):
+    print(cmd)
     if output_stdout:
         result = subprocess.run(cmd)
     else:
         result = subprocess.run(cmd, stdout=subprocess.PIPE)
-    if result.returncode != 0 and output_error:
-        print(result.stdout.decode("UTF-8"))
+        if result.returncode != 0 and output_error:
+            print(result.stdout.decode("UTF-8"))
     return result
 
 def collect_dockerfiles(versions):
@@ -48,7 +49,7 @@ def collect_dockerfiles(versions):
                 if image_tag is None:
                     raise Exception(f"Not image tag in Dockerfile {f}")
                 version = f.replace(f'rails{major}/Dockerfile.rails',"")
-                cmd = ["docker", "build", "-f", f, "-t", image_tag, f'rails{major}/']
+                cmd = ["docker", "build", "--load", "-f", f, "-t", image_tag, f'rails{major}/']
                 image_info.append({
                     'version': version,
                     'image_tag': image_tag,
