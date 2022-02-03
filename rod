@@ -8,7 +8,8 @@ NAME="rod"
 
 _versions = {
     '7.0.1': 'wxwmatt/rails:7.0.1-alpine3.15',
-    '7':'wxwmatt/rails:7.0.1-alpine3.15'
+    '7':'wxwmatt/rails:7.0.1-alpine3.15',
+    '6':'wxwmatt/rails:6.1.4.4-alpine3.15'
 }
 
 def get_rails_image_name(version):
@@ -156,7 +157,8 @@ def generate_rails_project(options, rails_options):
     cwd = os.getcwd()
     args = rails_base_cmd(image_name) + rails_options
     if run_docker_cmd(args).returncode == 0:
-        do_build_image(image_name, os.path.join(cwd, rails_options[1]))
+        tag_name = options.tag or "latest"
+        do_build_image(image_name, tag_name, os.path.join(cwd, rails_options[1]))
 
 
 def project(args):
@@ -242,6 +244,7 @@ parser_new = parser_project_subparsers.add_parser('new', help='create a new rail
 parser_new.add_argument('name', help='project name')
 
 parser_new.add_argument('-v', '--version', dest="version", action='store', help='specify rails version')
+parser_new.add_argument('-t', '--tag', dest="tag", action='store', help='specify rails version')
 parser_new.add_argument('-m', '--mysql', dest="database", action='store_const', const="mysql", help='using mysql')
 parser_new.add_argument('-p', '--pg', dest="database", action='store_const', const="postgresql",  help='using postgresql')
 parser_new.add_argument('-s', '--sqlite3', dest="database", action='store_const', const="sqlite3", help='using sqlite3')
