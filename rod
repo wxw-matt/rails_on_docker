@@ -40,7 +40,7 @@ def docker_compose_exec_cmd(full_tag, args_for_docker=[]):
     gid = os.getgid()
     cwd = os.getcwd()
     args = ["docker-compose", "exec", "--user", f'{uid}:{gid}',
-        "-e", "HOME=/app", "-w", "/app"] + args_for_docker + [full_tag]
+        "-e", "HOME=/app"] + args_for_docker + [full_tag]
 
     return args
 
@@ -103,15 +103,15 @@ RUN bundle install
 
 # Docker version 20.10.11, build dea9396
 def do_generate_controller(full_tag, options):
-    args = rails_generate_controller_cmd(full_tag) + [options.NAME] + options.actions
+    args = merge_cmds(rails_generate_controller_cmd(full_tag) , [options.NAME] + options.actions)
     run_cmd(*args)
 
 def do_generate_model(full_tag, options):
-    args = rails_generate_model_cmd(full_tag) + [options.NAME] + options.fields
+    args = merge_cmds(rails_generate_model_cmd(full_tag) , [options.NAME] + options.fields)
     run_cmd(*args)
 
 def do_generate_scaffold(full_tag, options):
-    args = rails_generate_scaffold_cmd(full_tag) + [options.NAME] + options.fields
+    args = merge_cmds(rails_generate_scaffold_cmd(full_tag) , [options.NAME] + options.fields)
     run_cmd(*args)
 
 def run_cmd(cmd, cmd_alt=None, output_error=True, output_stdout=True):
