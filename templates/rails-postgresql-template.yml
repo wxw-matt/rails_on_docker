@@ -1,0 +1,39 @@
+# Use postgres/example user/password credentials
+# parameters: image_tag, rails_port, password, postgres_tag, postgres_port, networks
+{% import 'funcs.yml' as funcs -%}
+
+version: {{ funcs.version('3.2') }}
+
+services:
+  web:
+    {% if image_tag -%}
+    image: {{ image_tag }}
+    {% else -%}
+    build: .
+    {% endif -%}
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime:ro
+    working_dir: /app
+    command: >
+      bundle exec rails s -p 3000 -b '0.0.0.0'
+    ports:
+      - {{ funcs.default_rails_port(rails_port) }}
+    # https://github.com/compose-spec/compose-spec/blob/master/spec.md#init
+    init: true
+    environment:
+      DB_PASSWORD: {{ funcs.password(password)}}
+    {{ funcs.macro_networks(networks) }}
+  db:
+    image: {{ funcs.postgres(postgres_tag) }}
+    restart: unless-stopped
+    init: true
+    environment:
+      POSTGRES_PASSWORD: {{ funcs.password(password) }}
+    ports:
+      - {{ funcs.default_postgres_port(postgres_port) }}
+    {{ funcs.macro_networks(networks) }}
+
+{{ funcs.macro_networks_with_driver(networks, driver='bridge') }}

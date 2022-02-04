@@ -1,0 +1,57 @@
+{% macro macro_networks(names) %}
+    networks:
+  {%- if names is string %}
+      - {{ names }}
+  {% else %}
+      {% for network in names -%}
+      - {{ network }}
+      {% endfor -%}
+  {% endif %}
+{%- endmacro %}
+
+{% macro macro_networks_with_driver(names,driver='bridge') -%}
+
+networks:
+{%- if names is string %}
+  {{ names }}:
+    driver: bridge
+{%- else -%}
+  {%- for network in names %}
+    {{ network }}:
+      driver: bridge
+  {%- endfor %}
+{% endif %}
+{%- endmacro %}
+
+{% macro default_rails_port(default_rails_port='', default='3000:3000') -%}
+{{ '"%s"'% (default_rails_port or default) }}
+{%- endmacro %}
+
+{% macro password(password, default='example') -%}
+{{ password or default }}
+{%- endmacro %}
+
+
+{% macro version(version='', default="'3.5'") -%}
+{{ "'%s'" % version or default }}
+{%- endmacro %}
+
+{# Postgresql #}
+
+{% macro postgres(tag, default='postgres:alpine') -%}
+{{ tag or default }}
+{%- endmacro %}
+
+{% macro default_postgres_port(default_postgres_port='', default='5432:5432') -%}
+{{ '"%s"'% (default_postgres_port or default) }}
+{%- endmacro %}
+
+{# Mariadb #}
+
+{% macro mariadb(tag, default='mariadb') -%}
+{{ tag or default }}
+{%- endmacro %}
+
+{% macro default_mariadb_port(default_mariadb_port='', default='3306:3306') -%}
+{{ '"%s"'% (default_mariadb_port or default) }}
+{%- endmacro %}
