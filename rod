@@ -153,7 +153,7 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         else:
             f.write(template.dc_rails_postgres_template(None,networks=['rod-network']))
 
-    os.symlink(__file__, os.path.join(project_dir, 'rod'))
+    os.symlink(os.path.abspath(__file__), os.path.join(project_dir, 'rod'))
 
 def get_project_tag(image_tag, project_dir):
     tag = project_dir.split('/')[-1]
