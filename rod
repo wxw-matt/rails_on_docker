@@ -153,6 +153,8 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         else:
             f.write(template.dc_rails_postgres_template(None,networks=['rod-network']))
 
+    os.symlink(__file__, os.path.join(project_dir, 'rod'))
+
 def get_project_tag(image_tag, project_dir):
     tag = project_dir.split('/')[-1]
     if image_tag:
@@ -285,9 +287,10 @@ def tasks(args):
     print(args)
 
 def execute_tasks(args):
-    config = read_config()
-    full_tag = config['image']['tag']
-    cmds = merge_cmds(rails_base_cmd(full_tag),  args.task)
+    cwd = os.getcwd()
+    config = read_config(f'{cwd}/.rod')
+    service = config['service']['web']
+    cmds = merge_cmds(rails_base_cmd(service),  args.task)
     run_cmd(*cmds)
 
 parser = argparse.ArgumentParser(prog=NAME)
@@ -339,7 +342,7 @@ parser_new = parser_project_subparsers.add_parser('new', help='create a new rail
 parser_new.add_argument('name', help='project name')
 
 parser_new.add_argument('-v', '--version', dest="version", action='store', help='specify rails version')
-parser_new.add_argument('-t', '--tag', dest="tag", action='store', help='specify rails version')
+parser_new.add_argument('-t', '--tag', dest="tag", action='store', help='specify tag for Docker image')
 parser_new.add_argument('-m', '--mysql', dest="database", action='store_const', const="mysql", help='using mysql')
 parser_new.add_argument('-p', '--pg', dest="database", action='store_const', const="postgresql",  help='using postgresql')
 parser_new.add_argument('-s', '--sqlite3', dest="database", action='store_const', const="sqlite3", help='using sqlite3')

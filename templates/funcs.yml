@@ -52,6 +52,6 @@ networks:
 {{ tag or default }}
 {%- endmacro %}
 
-{% macro default_mariadb_port(default_mariadb_port='', default='3306:3306') -%}
+{% macro default_mariadb_port(default_mariadb_port='', default='3306') -%}
 {{ '"%s"'% (default_mariadb_port or default) }}
 {%- endmacro %}
