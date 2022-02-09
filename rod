@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 import sys, os, glob
-import subprocess
 import argparse
-import configparser
 import signal
 import time
 
+from lib.config import read_config, get_docker_compose_service, write_rod, get_project_tag
 from lib import template
+from lib.cmd_helper import merge_cmds, shell_cmd, run_cmd
+from lib.rails_cmds import rails_base_cmd, rails_project_command, rails_generate_cmd, rails_generate_controller_cmd, rails_generate_model_cmd, rails_generate_scaffold_cmd
+from lib.rails_cmds import generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
+from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd
+from lib import docker_cmds
+from lib import rails_cmds
 
 NAME="rod"
-
-_versions = {
-    '7.0.1': 'wxwmatt/rails:7.0.1-alpine3.15',
-    '7':'wxwmatt/rails:7.0.1-alpine3.15',
-    '6':'wxwmatt/rails:6.1.4.4-alpine3.15'
-}
 
 def signal_handler(sig, frame):
     print('\nWaiting for exiting...')
@@ -22,283 +21,64 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-def get_rails_image_name(version):
-    global _versions
-    return _versions[version]
-
-
-def docker_compose_run_cmd(full_tag, args_for_docker=[]):
-    uid = os.getuid()
-    gid = os.getgid()
-    cwd = os.getcwd()
-    args = ["docker-compose", "run", "--rm", "--user", f'{uid}:{gid}',
-        "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app"] + args_for_docker + [full_tag]
-    return args
-
-def docker_compose_exec_cmd(full_tag, args_for_docker=[]):
-    uid = os.getuid()
-    gid = os.getgid()
-    cwd = os.getcwd()
-    args = ["docker-compose", "exec", "--user", f'{uid}:{gid}',
-        "-e", "HOME=/app"] + args_for_docker + [full_tag]
-
-    return args
-
-def docker_base_cmd(full_tag, args_for_docker=[]):
-    uid = os.getuid()
-    gid = os.getgid()
-    cwd = os.getcwd()
-    args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}',
-        "-v", f'{cwd}:/app:rw', "-e", "HOME=/app", "-w", "/app"] + args_for_docker + [full_tag]
-    return args
-
-def docker_project_base_cmd(full_tag, prject_dir,args_for_docker=[]):
-    uid = os.getuid()
-    gid = os.getgid()
-    args = ["docker", "run", "--rm", "-it","--user", f'{uid}:{gid}',
-        "-v", f'{prject_dir}:/app:rw', "-e", "HOME=/app", "-w", "/app"] + args_for_docker + [full_tag]
-    return args
-
-def shell_cmd(cmd, full_tag, args_for_docker=[]):
-    cmds = [
-            docker_compose_exec_cmd(full_tag, args_for_docker) + [cmd],
-            docker_compose_run_cmd(full_tag, args_for_docker) + [cmd]
-            ]
-    return cmds
-
-def rails_base_cmd(full_tag, args_for_docker=[]):
-    return [
-            docker_compose_exec_cmd(full_tag, args_for_docker) + ['rails'],
-            docker_compose_run_cmd(full_tag, args_for_docker) + ['rails']
-            ]
-
-
-def rails_project_command(command, options, args_for_docker=[]):
-    cmds = merge_cmds(rails_base_cmd(get_service(), args_for_docker),  [command] + options)
-    run_cmd(*cmds)
-
-def merge_cmds(cmds, extra):
-    return [ c + extra for c in cmds]
-
-def rails_generate_cmd(full_tag):
-    return merge_cmds(rails_base_cmd(full_tag),  ['generate'])
-
-def rails_generate_controller_cmd(full_tag):
-    return merge_cmds(rails_generate_cmd(full_tag),  ['controller'])
-
-def rails_generate_model_cmd(full_tag):
-    return merge_cmds(rails_generate_cmd(full_tag),  ['model'])
-
-def rails_generate_scaffold_cmd(full_tag):
-    return merge_cmds(rails_generate_cmd(full_tag),  ['scaffold'])
-
 # Docker composer postgresql template
-
-def dc_rails_mariadb_template(image_tag):
-    pass
-
-def dc_rails_postgres_template(image_tag):
-    pass
-
-def dockerfile_template(image_tag):
-    dockerfile_template = f"""
-FROM {image_tag}
-
-RUN mkdir -p /app
-ENV HOME /app
-COPY Gemfile Gemfile.lock ./
-RUN bundle install
-"""
-    return dockerfile_template
-
-# Docker version 20.10.11, build dea9396
-def do_generate_controller(full_tag, options):
-    args = merge_cmds(rails_generate_controller_cmd(full_tag) , [options.NAME] + options.actions)
-    run_cmd(*args)
-
-def do_generate_model(full_tag, options):
-    args = merge_cmds(rails_generate_model_cmd(full_tag) , [options.NAME] + options.fields)
-    run_cmd(*args)
-
-def do_generate_scaffold(full_tag, options):
-    args = merge_cmds(rails_generate_scaffold_cmd(full_tag) , [options.NAME] + options.fields)
-    run_cmd(*args)
-
-def run_cmd(cmd, cmd_alt=None, output_error=True, output_stdout=True):
-    if output_stdout:
-        result = subprocess.run(cmd)
-        if cmd_alt and result.returncode != 0:
-            result = subprocess.run(cmd_alt)
-    else:
-        result = subprocess.run(cmd, stdout=subprocess.PIPE)
-        if cmd_alt and result.returncode != 0:
-            result = subprocess.run(cmd_alt)
-            if result.returncode != 0 and output_error:
-                print(result.stdout.decode("UTF-8"))
-    return result
-
 
 def project(args):
     print(args)
     print("project")
 
 
-def create_files_for_the_project(rails_base_tag, database, project_dir):
-    with open(f'{project_dir}/Dockerfile', 'w+') as f:
-        f.write(dockerfile_template(rails_base_tag))
-
-    with open(f'{project_dir}/docker-compose.yml', 'w+') as f:
-        if database == 'mysql':
-            f.write(template.dc_rails_mariadb_template(None,networks=['rod-network']))
-        else:
-            f.write(template.dc_rails_postgres_template(None,networks=['rod-network']))
-
-    os.symlink(os.path.abspath(__file__), os.path.join(project_dir, 'rod'))
-
-def get_project_tag(image_tag, project_dir):
-    tag = project_dir.split('/')[-1]
-    if image_tag:
-        if ':' in image_tag:
-            # sth:version
-            tag = image_tag
-        else:
-            # version
-            tag = f'{tag}:{image_tag}'
-    else:
-        tag = tag + ":latest"
-    return tag
-
-def write_rod(rails_base_tag, image_tag, service,project_dir):
-    tag = get_project_tag(image_tag, project_dir)
-    fn = f'{project_dir}/.rod'
-    config = read_config(fn)
-    if 'image' not in config:
-        config['image'] = {}
-        config['service'] = {}
-    with open(fn, 'w+') as configfile:
-        # tag is used by docker, service name `web` is for docker-compose
-        config['service']['web'] = service
-        config['image']['tag'] = tag
-        config['image']['base'] = rails_base_tag
-        config.write(configfile)
-
-def do_build_image(rails_base_tag, image_tag, project_dir):
-    tag = get_project_tag(image_tag, project_dir)
-    cmd = ['docker', 'build', '-t', tag, project_dir]
-    if run_cmd(cmd).returncode == 0:
-        write_rod(rails_base_tag, tag, 'web', project_dir)
-
-def read_config(config_file=f'{os.getcwd()}/.rod'):
-    config = configparser.ConfigParser()
-    config.read(config_file)
-    return config
-
-def build_image(args):
+def build_image_handler(args):
     config = read_config()
     tag_name = args.tag or "latest"
     print(f"Create Rails project image with tag `{tag_name}` based on `{config['image']['base']}`")
     project_dir = os.getcwd()
-    do_build_image(config['image']['base'], args.tag, project_dir)
+    rails_cmds.build_image_and_create_rod(config['image']['base'], args.tag, project_dir)
 
-def image(args):
+def image_handler(args):
     print(args)
 
-def get_service():
-    cwd = os.getcwd()
-    config = read_config(f'{cwd}/.rod')
-    service = config['service']['web']
-    return service
-
-def shell(args):
-    cmds = shell_cmd('sh', get_service())
+def shell_handler(args):
+    cmds = shell_cmd('sh', get_docker_compose_service())
     run_cmd(*cmds)
 
 def generate(args):
     print(args)
 
-def generate_controller(args):
-    do_generate_controller(get_service(), args)
-
-def generate_model(args):
-    do_generate_model(get_service(), args)
-
-def generate_scaffold(args):
-    do_generate_scaffold(get_service(), args)
-
-
 def lock_gemfile(rails_base_tag, project_dir):
     cmd = docker_project_base_cmd(rails_base_tag,project_dir) + ['bundle', 'lock', '--add-platform','ruby']
     run_cmd(cmd)
 
-# Docker version 20.10.11, build dea9396
-def generate_rails_project(options, rails_options):
-    rails_base_tag= get_rails_image_name(options.version)
-    uid = os.getuid()
-    gid = os.getgid()
-    cwd = os.getcwd()
-
-    cmd = docker_base_cmd(rails_base_tag) + ['rails'] + rails_options
-    if run_cmd(cmd).returncode == 0:
-        tag_name = options.tag or "latest"
-        project_dir = os.path.join(cwd, rails_options[1])
-        create_files_for_the_project(rails_base_tag, options.database, project_dir);
-        write_rod(rails_base_tag, tag_name,'web',project_dir)
-        if not options.skip_bundle:
-            do_build_image(rails_base_tag, tag_name, project_dir)
-        else:
-            lock_gemfile(rails_base_tag,project_dir)
-
-def project(args):
-    print(args)
-    print("project")
-
-def new_project(args):
-    if not args.version:
-        print ("Please specify a rails version, like `-v 7`")
-        exit(1)
-    print("Create a new Rails project")
-    project_name = args.name
-    rails_version = args.version
-    database = args.database
-    rails_options = ['new', project_name, f'--database={database}']
-    if args.skip_bundle:
-        rails_options.append('-B')
-    generate_rails_project(args, rails_options)
-
-def rails_commands(args):
+def bundle_commands_handler(args):
     print(args)
 
-def rails_command_server(args):
-    port = args.port or '3000'
-    options = ['-p', port, '-b', '0.0.0.0']
-    run_cmd(['docker-compose','up'])
-
-def rails_command_console(args):
-    options = []
-    rails_project_command('console', options)
-
-def bundle_commands(args):
+def bundle_install_handler(args):
     print(args)
 
-def bundle_command_install(args):
+def tasks_handler(args):
     print(args)
 
-def tasks(args):
-    print(args)
-
-def execute_tasks(args):
+def task_handler(args):
     cwd = os.getcwd()
     config = read_config(f'{cwd}/.rod')
     service = config['service']['web']
     cmds = merge_cmds(rails_base_cmd(service),  args.task)
     run_cmd(*cmds)
 
+
+def add_parent_parser(parsers):
+    for parser in parsers:
+        print(parser)
+
 parser = argparse.ArgumentParser(prog=NAME)
 subparsers = parser.add_subparsers(help='sub-command help')
 
+base_subparser = argparse.ArgumentParser(add_help=False)
+base_subparser.add_argument('--dry-run', action='store_true')
+
 # Shell
 parser_generate = subparsers.add_parser('Shell',aliases=['sh'], help='Attach to the shell')
-parser_generate.set_defaults(func=shell)
+parser_generate.set_defaults(func=shell_handler)
 
 # Generator
 parser_generate = subparsers.add_parser('generate',aliases=['g'], help='Generate controllers, models and scaffolds')
@@ -309,19 +89,19 @@ generate_subparsers = parser_generate.add_subparsers(help="Generate a controller
 controller_parser = generate_subparsers.add_parser('controller', help='Generate a controller')
 controller_parser.add_argument('NAME', help='Controller name')
 controller_parser.add_argument('actions', nargs='*', type=str, help='Controller name')
-controller_parser.set_defaults(func=generate_controller)
+controller_parser.set_defaults(func=generate_controller_handler)
 
 ## Generate models
-model_parser = generate_subparsers.add_parser('model', help='Generate a model')
+model_parser = generate_subparsers.add_parser('model', help='Generate a model', parents=[base_subparser])
 model_parser.add_argument('NAME', help='Model name')
 model_parser.add_argument('fields', nargs='*', type=str, help='Format: [field[:type][:index]')
-model_parser.set_defaults(func=generate_model)
+model_parser.set_defaults(func=generate_model_handler)
 
 ## Generate scaffolds
 scaffold_parser = generate_subparsers.add_parser('scaffold', help='Generate a scaffold')
 scaffold_parser.add_argument('NAME', help='Scaffold name')
 scaffold_parser.add_argument('fields', nargs='*', type=str, help='Format: [field[:type][:index]')
-scaffold_parser.set_defaults(func=generate_scaffold)
+scaffold_parser.set_defaults(func=generate_scaffold_handler)
 
 # Image
 parser_image = subparsers.add_parser('image', help='Build Rails image')
@@ -331,8 +111,8 @@ parser_image_subparsers = parser_image.add_subparsers(help="subcommands for Rail
 parser_build = parser_image_subparsers.add_parser('build', help='Create a build Rails image')
 
 parser_build.add_argument('-t', '--tag', dest="tag", action='store', help='Specify image tag')
-parser_build.set_defaults(func=build_image)
-parser_image.set_defaults(func=image)
+parser_build.set_defaults(func=build_image_handler)
+parser_image.set_defaults(func=image_handler)
 
 # project
 parser_project = subparsers.add_parser('project', help='create a new rails project')
@@ -347,42 +127,42 @@ parser_new.add_argument('-m', '--mysql', dest="database", action='store_const', 
 parser_new.add_argument('-p', '--pg', dest="database", action='store_const', const="postgresql",  help='using postgresql')
 parser_new.add_argument('-s', '--sqlite3', dest="database", action='store_const', const="sqlite3", help='using sqlite3')
 parser_new.add_argument('-b', '--skip-bundle', action='store_true', help='Don\'t run bundle install')
-parser_new.set_defaults(func=new_project)
-parser_project.set_defaults(func=project)
+parser_new.set_defaults(func=new_project_handler)
+parser_project.set_defaults(func=project_handler)
 
 # Rails commands
 parser_rails = subparsers.add_parser('rails', help='Rails commands')
-parser_rails.set_defaults(func=rails_commands)
+parser_rails.set_defaults(func=rails_command_handler)
 
 ## Rails server
 parser_rails_subparsers = parser_rails.add_subparsers(help="subcommands for Rails")
 parser_server = parser_rails_subparsers.add_parser('server', aliases=['s'], help='Start a Rails server')
 
 parser_server.add_argument('-p', '--port', dest="port", action='store', help='Specify the port for the server')
-parser_server.set_defaults(func=rails_command_server)
+parser_server.set_defaults(func=rails_command_server_handler)
 
 ## Rails console
 parser_console = parser_rails_subparsers.add_parser('console', help='Create a console Rails rails')
 
-parser_console.set_defaults(func=rails_command_console)
+parser_console.set_defaults(func=rails_command_console_handler)
 
 # Rake tasks
 parser_tasks = subparsers.add_parser('tasks', aliases=['t'], help='Execute rake tasks')
-parser_tasks.set_defaults(func=tasks)
+parser_tasks.set_defaults(func=tasks_handler)
 
 parser_tasks.add_argument('task', nargs='+', type=str, help='Rake tasks, such as db:migrate db:rollback')
-parser_tasks.set_defaults(func=execute_tasks)
+parser_tasks.set_defaults(func=task_handler)
 
 ## Bundle
 parser_bundle = subparsers.add_parser('bundle', help='Bundle commands')
-parser_bundle.set_defaults(func=bundle_commands)
+parser_bundle.set_defaults(func=bundle_commands_handler)
 
-## Rails server
+## Bundle install
 parser_bundle_subparsers = parser_bundle.add_subparsers(help="subcommands for bundle")
 parser_install = parser_bundle_subparsers.add_parser('install', aliases=['s'], help='Start a Rails install')
 
 parser_install.add_argument('-p', '--port', dest="port", action='store', help='Specify the port for the install')
-parser_install.set_defaults(func=bundle_command_install)
+parser_install.set_defaults(func=bundle_install_handler)
 
 if len(sys.argv) == 1:
     parser.print_help()

@@ -1,0 +1,24 @@
+# Use mariadb/example user/password credentials
+# parameters: image_tag, rails_port, password, mariadb_tag, mariadb_port, networks
+{% import 'funcs.yml' as funcs -%}
+
+version: {{ funcs.version('3.5') }}
+
+services:
+  web:
+    {% if image_tag -%}
+    image: {{ image_tag }}
+    {% else -%}
+    build: .
+    {% endif -%}
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime:ro
+    working_dir: /app
+    command: >
+      bundle exec rails s -p 3000 -b '0.0.0.0'
+    ports:
+      - {{ funcs.default_rails_port(rails_port) }}
+    {{ funcs.macro_networks(networks) }}
+
+{{ funcs.macro_networks_with_driver(networks, driver='bridge') }}
