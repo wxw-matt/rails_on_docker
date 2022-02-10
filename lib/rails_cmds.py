@@ -76,6 +76,15 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         else:
             f.write(template.dc_rails_sqlite3_template(None,networks=['rod-network']))
 
+    with open(f'{project_dir}/config/database.yml', 'w+') as f:
+        app_name = path.basename(project_dir)
+        if database == 'mysql':
+            f.write(template.dc_mariadb_config(None,app_name=app_name, dev_password=None))
+        elif database == 'postgresql':
+            f.write(template.dc_rails_postgres_template(None,app_name=app_name, dev_password=None))
+        else:
+            f.write(template.dc_rails_sqlite3_template(None,app_name=app_name, dev_password=None))
+
     rod_path = path.join(project_dir, 'rod')
     if not path.exists(rod_path):
         os.symlink(path.abspath(sys.argv[0]), rod_path)

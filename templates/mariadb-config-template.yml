@@ -1,3 +1,4 @@
+{% import 'funcs.yml' as funcs -%}
 # Parameters: db_host, app_name
 # MySQL. Versions 5.5.8 and up are supported.
 #
@@ -15,7 +16,7 @@ default: &default
   encoding: utf8mb4
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   username: root
-  password: <%= ENV["DEV_PASSWORD"] || 'example' %>
+  password: <%= ENV["DEV_PASSWORD"] || '{{ funcs.password(dev_password) }}' %>
   host: {{ db_host or 'db' }}
 
 development:

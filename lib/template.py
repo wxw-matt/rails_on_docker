@@ -20,13 +20,13 @@ def dc_rails_sqlite3_template(image_tag, rails_port="3000:3000",networks=["rod-n
     template = get_env().get_template('rails-sqlite3-template.yml')
     return template.render(image_tag=image_tag, rails_port="3000:3000", networks=networks)
 
-def dc_postgres_config(db_host, app_name):
+def dc_postgres_config(db_host, app_name, dev_password='example'):
     template = get_env().get_template('pg-config-template.yml')
-    return template.render(db_host=db_host, app_name=app_name)
+    return template.render(db_host=db_host, app_name=app_name, dev_password=dev_password)
 
-def dc_mariadb_config(db_host, app_name):
+def dc_mariadb_config(db_host, app_name, dev_password='example'):
     template = get_env().get_template('mariadb-config-template.yml')
-    return template.render(db_host=db_host, app_name=app_name)
+    return template.render(db_host=db_host, app_name=app_name, dev_password=dev_password)
 
 def dockerfile_template(image_tag):
     dockerfile_template = f"""
