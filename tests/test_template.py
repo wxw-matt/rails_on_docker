@@ -32,8 +32,11 @@ class TestDataConfigTemplate(unittest.TestCase):
         f = open(self.config_path.joinpath('database.yml'))
         config = yaml.safe_load(f)
         f.close()
+        password = 'example'
         for env in ['development', 'production']:
             self.assertEqual(config[env]['database'], f'{self.project_name}_{env}')
+            self.assertEqual(config[env]['host'], f'db')
+            self.assertTrue(password in config[env]['password'])
 
 if __name__ == '__main__':
     unittest.main()
