@@ -1,0 +1,58 @@
+# API_SERVER=api_server1:3000;api_server2:3000;
+# LISTEN=80
+# SERVER_NAME=example.com
+upstream api {
+    ${API_SERVERS}
+}
+
+server {
+    listen ${LISTEN};
+    proxy_http_version 1.1;
+    server_name ${SERVER_NAME};
+
+    location / {
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            #
+            # Om nom nom cookies
+            #
+            # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+            #
+            # Custom headers and headers various browsers *should* be OK with but aren't
+            #
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type';
+            #
+            # Tell client that this pre-flight info is valid for 20 days
+            #
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+
+        # This setting only makes GET/POST/HEAD work, PUT/DELETE need an extra preflight request which is an OPTIONS request
+        # Using always to add header to responses with status codes not in 200, 204, 206, 301, 302, 303, 304, or 307
+        # http://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header
+        add_header 'Access-Control-Allow-Origin' "*" always;
+
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#preflighted_requests
+        # DELETE and PUT requires a preflight request for permissions, which is actually an OPTIONS request
+        # That is the reason we need process OPTIONS request above
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+
+        proxy_pass http://api;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP       $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto  $scheme;
+        proxy_redirect off;
+    }
+
+    error_page 500 502 503 504 /500.html;
+    client_max_body_size 32M;
+    keepalive_timeout 10;
+}
+
+# vim:ft=nginx
