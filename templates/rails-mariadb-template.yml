@@ -23,6 +23,7 @@ services:
       - {{ funcs.default_rails_port(rails_port) }}
     environment:
       DB_PASSWORD: {{ funcs.password(password)}}
+      RAILS_ENV: {{ funcs.rails_env(rails_env)}}
     {{ funcs.macro_networks(networks) }}
   db:
     image: {{ funcs.mariadb(mariadb_tag) }}

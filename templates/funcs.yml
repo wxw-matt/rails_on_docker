@@ -31,6 +31,10 @@ networks:
 {{ password or default }}
 {%- endmacro %}
 
+{% macro rails_env(rails_env, default='development') -%}
+{{ rails_env or default }}
+{%- endmacro %}
+
 
 {% macro version(version='', default="'3.5'") -%}
 {{ "'%s'" % version or default }}

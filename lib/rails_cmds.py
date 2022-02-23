@@ -76,6 +76,14 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         else:
             f.write(template.dc_rails_sqlite3_template(None,networks=['rod-network']))
 
+    with open(f'{project_dir}/docker-compose-pro.yml', 'w+') as f:
+        if database == 'mysql':
+            f.write(template.dc_rails_mariadb_template(None,networks=['rod-network']))
+        elif database == 'postgresql':
+            f.write(template.dc_rails_postgres_template(None,networks=['rod-network']))
+        else:
+            f.write(template.dc_rails_sqlite3_template(None,networks=['rod-network']))
+
     with open(f'{project_dir}/config/database.yml', 'w+') as f:
         app_name = path.basename(project_dir)
         if database == 'mysql':

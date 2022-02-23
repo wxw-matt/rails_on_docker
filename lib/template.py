@@ -7,18 +7,20 @@ def get_env(directory='templates'):
     )
     return env
 
+def dc_rails_template(db, image_tag,  **kwargs):
+    assert( db in ['postgres', 'mariadb', 'sqlite3'] )
+    kwargs['image_tag'] = image_tag
+    template = get_env().get_template('rails-%s-template.yml' % db)
+    return template.render(**kwargs)
 
-def dc_rails_postgres_template(image_tag, rails_port="3000:3000", password="example",postgres_tag='',networks=["rod-network"]):
-    template = get_env().get_template('rails-postgres-template.yml')
-    return template.render(image_tag=image_tag, rails_port=rails_port, password=password, postgres_tag=postgres_tag, networks=networks)
+def dc_rails_postgres_template(image_tag, **kwargs):
+    return dc_rails_template('postgres', image_tag, **kwargs)
 
-def dc_rails_mariadb_template(image_tag, rails_port="3000:3000", password="example",mariadb_tag='', networks=["rod-network"]):
-    template = get_env().get_template('rails-mariadb-template.yml')
-    return template.render(image_tag=image_tag, rails_port=rails_port, password=password, mariadb_tag=mariadb_tag, networks=networks)
+def dc_rails_mariadb_template(image_tag, **kwargs):
+    return dc_rails_template('mariadb', image_tag, **kwargs)
 
-def dc_rails_sqlite3_template(image_tag, rails_port="3000:3000",networks=["rod-network"]):
-    template = get_env().get_template('rails-sqlite3-template.yml')
-    return template.render(image_tag=image_tag, rails_port="3000:3000", networks=networks)
+def dc_rails_sqlite3_template(image_tag, **kwargs):
+    return dc_rails_template('sqlite3', image_tag, **kwargs)
 
 def dc_postgres_config(db_host, app_name, dev_password='example'):
     template = get_env().get_template('pg-config-template.yml')
@@ -42,6 +44,7 @@ RUN bundle install
 
 
 if __name__ == "__main__":
-    # print(dc_rails_postgres_template('myapp',networks=['rod-network']))
-    # print(dc_rails_mariadb_template('myapp',networks=['rod-network']))
+    print(dc_rails_postgres_template('myapp',networks=['rod-network']))
+    print(dc_rails_mariadb_template('myapp',networks=['rod-network']))
+    print(dc_rails_sqlite3_template('myapp',networks=['rod-network']))
     print(dc_postgres_config('rds','p9'))
