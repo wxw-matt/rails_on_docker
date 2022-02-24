@@ -3,8 +3,7 @@ from os import path
 from lib import config
 from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd
 from lib.cmd_helper import run_cmd, merge_cmds
-from lib import template
-from lib import docker_cmds
+from lib import args_helper, template, docker_cmds
 
 _versions = {
     '7.0.1': 'wxwmatt/rails:7.0.1-alpine3.15',

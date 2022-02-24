@@ -5,13 +5,11 @@ import signal
 import time
 
 from lib.config import read_config, get_docker_compose_service, write_rod, get_project_tag
-from lib import template
+from lib import template, docker_cmds, rails_cmds, args_helper
 from lib.cmd_helper import merge_cmds, shell_cmd, run_cmd
 from lib.rails_cmds import rails_base_cmd, rails_project_command, rails_generate_cmd, rails_generate_controller_cmd, rails_generate_model_cmd, rails_generate_scaffold_cmd
 from lib.rails_cmds import generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
 from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd
-from lib import docker_cmds
-from lib import rails_cmds
 
 NAME="rod"
 
@@ -62,6 +60,7 @@ def task_handler(args):
     cwd = os.getcwd()
     config = read_config(f'{cwd}/.rod')
     service = config['service']['web']
+    rails_env = config['rails']['env']
     cmds = merge_cmds(rails_base_cmd(service),  args.task)
     run_cmd(*cmds)
 
@@ -70,11 +69,25 @@ def add_parent_parser(parsers):
     for parser in parsers:
         print(parser)
 
+class BaseArgs(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        super().__init__(option_strings, dest, nargs=0, **kwargs)
+    def __call__(self, parser, namespace, values, option_string):
+        setattr(namespace, self.dest, True)
+        if self.dest == 'dry_run':
+            args_helper.set_dry_run()
+        elif self.dest == 'production':
+            args_helper.set_production()
+        else:
+            assert(False)
+
+
 parser = argparse.ArgumentParser(prog=NAME)
 subparsers = parser.add_subparsers(help='sub-command help')
 
 base_subparser = argparse.ArgumentParser(add_help=False)
-base_subparser.add_argument('--dry-run', action='store_true')
+base_subparser.add_argument('--dry-run', nargs=0, action=BaseArgs)
+base_subparser.add_argument('--production', action=BaseArgs)
 
 # Shell
 parser_generate = subparsers.add_parser('Shell',aliases=['sh'], help='Attach to the shell')
@@ -131,12 +144,12 @@ parser_new.set_defaults(func=new_project_handler)
 parser_project.set_defaults(func=project_handler)
 
 # Rails commands
-parser_rails = subparsers.add_parser('rails', help='Rails commands')
+parser_rails = subparsers.add_parser('rails', help='Rails commands', parents=[base_subparser])
 parser_rails.set_defaults(func=rails_command_handler)
 
 ## Rails server
 parser_rails_subparsers = parser_rails.add_subparsers(help="subcommands for Rails")
-parser_server = parser_rails_subparsers.add_parser('server', aliases=['s'], help='Start a Rails server')
+parser_server = parser_rails_subparsers.add_parser('server', aliases=['s'], help='Start a Rails server', parents=[base_subparser])
 
 parser_server.add_argument('-p', '--port', dest="port", action='store', help='Specify the port for the server')
 parser_server.set_defaults(func=rails_command_server_handler)
@@ -147,7 +160,7 @@ parser_console = parser_rails_subparsers.add_parser('console', help='Create a co
 parser_console.set_defaults(func=rails_command_console_handler)
 
 # Rake tasks
-parser_tasks = subparsers.add_parser('tasks', aliases=['t'], help='Execute rake tasks')
+parser_tasks = subparsers.add_parser('tasks', aliases=['t'], help='Execute rake tasks', parents=[base_subparser])
 parser_tasks.set_defaults(func=tasks_handler)
 
 parser_tasks.add_argument('task', nargs='+', type=str, help='Rake tasks, such as db:migrate db:rollback')

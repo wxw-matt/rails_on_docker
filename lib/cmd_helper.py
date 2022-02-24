@@ -1,4 +1,5 @@
 import subprocess
+from lib import args_helper
 from lib.docker_cmds import docker_compose_exec_cmd, docker_compose_run_cmd
 
 def merge_cmds(cmds, extra):
@@ -15,6 +16,9 @@ def shell_cmd(cmd, full_tag, args_for_docker=[]):
 
 # Docker version 20.10.11, build dea9396
 def run_cmd(cmd, cmd_alt=None, output_error=True, output_stdout=True):
+    if args_helper.is_dry_run():
+        print('Dry run: ' + ' '.join(cmd))
+        return
     if output_stdout:
         result = subprocess.run(cmd)
         if cmd_alt and result.returncode != 0:
