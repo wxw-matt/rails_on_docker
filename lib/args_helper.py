@@ -1,7 +1,7 @@
-class GlobalArgs(object):
+class CustomArgs(object):
     pass
 
-_args = GlobalArgs()
+_args = CustomArgs()
 
 def get_global_args():
     global _args

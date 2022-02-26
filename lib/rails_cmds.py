@@ -71,6 +71,7 @@ def project_handler(args):
 
 def create_files_for_the_project(rails_base_tag, database, project_dir):
     app_name = args_helper.get_global_args().name
+    tag, release_tag = config.get_project_tags()
     with open(f'{project_dir}/Dockerfile', 'w+') as f:
         f.write(template.dockerfile_template(rails_base_tag))
 
@@ -104,6 +105,11 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
             f.write(template.dc_rails_postgres_template(None, **kwargs))
         else:
             f.write(template.dc_rails_sqlite3_template(None, **kwargs))
+
+    with open('k8s-deployment.yml','w+') as f:
+        name = os.path.basename(project_dir)
+        yaml_text = template.k8s_deployment_template(release_tag, app_name=name, replicas=2)
+        f.write(yaml_text)
 
     rod_path = path.join(project_dir, 'rod')
     if not path.exists(rod_path):

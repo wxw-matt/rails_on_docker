@@ -11,6 +11,7 @@ from lib.rails_cmds import rails_base_cmd, rake_base_cmd, rails_project_command,
 from lib.rails_cmds import generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
 from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd, build_image_cmd
 
+from lib import k8s
 NAME="rod"
 
 def signal_handler(sig, frame):
@@ -69,11 +70,24 @@ def deploy_commands_handler(args):
     pass
 
 def deploy_k8s_handler(args):
+    args_helper.set_production()
     project_dir = os.getcwd()
     tag, release_tag = config.get_project_tags()
+    # 1. Build pro image
+    # 2. Rails project will use a separate database, such as RDS,
+    #    so that it will have the configuration in `production` section
+    # 3. Run db:create and db:migrate to initialise the database
+    # 4. Generate k8s configuration files: deployment and service files
+    # 5. Perform the deployment
     cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
     if run_cmd(cmd).returncode == 0:
-        pass
+        print(f'{release_tag} built successfully')
+    args = args_helper.CustomArgs()
+    args.task = ['db:create', 'db:migrate']
+    # Rake tasks
+    task_handler(args)
+    # Generate k8s configuration
+    k8s.create_deployment('k8s-deployment.yml')
 
 class BaseArgs(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):

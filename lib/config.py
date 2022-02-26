@@ -39,12 +39,14 @@ def write_rod(rails_base_tag, tag, release_tag, service,project_dir):
     if 'image' not in config:
         config['image'] = {}
         config['service'] = {}
+        config['rails'] = {}
     with open(fn, 'w+') as configfile:
         # tag is used by docker, service name `web` is for docker-compose
         config['service']['web'] = service
         config['image']['tag'] = tag
         config['image']['release_tag'] = release_tag
         config['image']['base'] = rails_base_tag
+        config['rails']['env'] = 'development'
         config.write(configfile)
 
 

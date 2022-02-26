@@ -8,6 +8,13 @@ import yaml
 class TestGeneratedFiles(helper.TestCase):
     def test_files(self):
         args_helper.set_global_arg('name', self._helper.project_name)
+
+        cwd = os.getcwd()
+        project_dir = os.path.join(cwd, rails_options[1])
+        tag, release_tag = config.generate_project_tags(options.tag, project_dir)
+        create_files_for_the_project(rails_base_tag, options.database, project_dir);
+        config.write_rod(rails_base_tag, tag, release_tag, 'web', project_dir)
+
         rails_cmds.create_files_for_the_project('rails-tag:1.0','mysql', str(self._helper.project_path))
         # Database config
         f = open(self._helper.config_path.joinpath('database.yml'))

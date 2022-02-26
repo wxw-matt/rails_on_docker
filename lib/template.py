@@ -30,6 +30,12 @@ def dc_mariadb_config(db_host, app_name, dev_password='example'):
     template = get_env().get_template('mariadb-config-template.yml')
     return template.render(db_host=db_host, app_name=app_name, dev_password=dev_password)
 
+# replicas, app_name, created_at
+def k8s_deployment_template(image_tag, **kwargs):
+    kwargs['image_tag'] = image_tag
+    template = get_env().get_template('k8s-deployment-template.yml')
+    return template.render(**kwargs)
+
 def dockerfile_pro_template(rails_base_tag, **kwargs):
     kwargs['rails_base_tag'] = rails_base_tag
     template = get_env().get_template('Dockerfile-pro-template')
