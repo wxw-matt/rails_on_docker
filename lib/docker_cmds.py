@@ -42,7 +42,5 @@ def docker_compose_up_cmd(services=[]):
         services = [services]
     return ['docker-compose', '-f', get_docker_compose_file(), 'up', *services]
 
-def build_image(rails_base_tag, image_tag, project_dir):
-    tag = config.get_project_tag(image_tag, project_dir)
-    return ['docker', 'build', '-t', tag, project_dir]
-
+def build_image_cmd(tag, project_dir, dockerfile='Dockerfile'):
+    return ['docker', 'build', '-f', os.path.join(project_dir,dockerfile), '-t', tag, project_dir]

@@ -1,14 +1,13 @@
 import os, unittest
 from os import path
 from pathlib import Path
-from lib import rails_cmds, template
+from lib import rails_cmds, template, args_helper
 from tests import helper
 import yaml
 
-
-
 class TestGeneratedFiles(helper.TestCase):
     def test_files(self):
+        args_helper.set_global_arg('name', self._helper.project_name)
         rails_cmds.create_files_for_the_project('rails-tag:1.0','mysql', str(self._helper.project_path))
         # Database config
         f = open(self._helper.config_path.joinpath('database.yml'))

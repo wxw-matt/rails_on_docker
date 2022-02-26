@@ -14,7 +14,9 @@ services:
     depends_on:
       - db
     volumes:
+      {% if rails_env != 'production' -%}
       - .:/app
+      {% endif -%}
       - /etc/localtime:/etc/localtime:ro
     working_dir: /app
     command: >
@@ -23,6 +25,7 @@ services:
       - {{ funcs.default_rails_port(rails_port) }}
     environment:
       DB_PASSWORD: {{ funcs.password(password)}}
+      RAILS_ENV: {{ funcs.rails_env(rails_env)}}
     {{ funcs.macro_networks(networks) }}
   db:
     image: {{ funcs.postgres(postgres_tag) }}

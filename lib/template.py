@@ -30,9 +30,14 @@ def dc_mariadb_config(db_host, app_name, dev_password='example'):
     template = get_env().get_template('mariadb-config-template.yml')
     return template.render(db_host=db_host, app_name=app_name, dev_password=dev_password)
 
-def dockerfile_template(image_tag):
+def dockerfile_pro_template(rails_base_tag, **kwargs):
+    kwargs['rails_base_tag'] = rails_base_tag
+    template = get_env().get_template('Dockerfile-pro-template')
+    return template.render(**kwargs)
+
+def dockerfile_template(rails_base_tag):
     dockerfile_template = f"""
-FROM {image_tag}
+FROM {rails_base_tag}
 
 RUN mkdir -p /app
 ENV HOME /app

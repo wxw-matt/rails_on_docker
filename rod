@@ -4,12 +4,12 @@ import argparse
 import signal
 import time
 
-from lib.config import read_config, get_docker_compose_service, write_rod, get_project_tag
+from lib import config
 from lib import template, docker_cmds, rails_cmds, args_helper
 from lib.cmd_helper import merge_cmds, shell_cmd, run_cmd
-from lib.rails_cmds import rails_base_cmd, rails_project_command, rails_generate_cmd, rails_generate_controller_cmd, rails_generate_model_cmd, rails_generate_scaffold_cmd
+from lib.rails_cmds import rails_base_cmd, rake_base_cmd, rails_project_command, rails_generate_cmd, rails_generate_controller_cmd, rails_generate_model_cmd, rails_generate_scaffold_cmd
 from lib.rails_cmds import generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
-from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd
+from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd, build_image_cmd
 
 NAME="rod"
 
@@ -25,19 +25,19 @@ def project(args):
     print(args)
     print("project")
 
-
 def build_image_handler(args):
-    config = read_config()
-    tag_name = args.tag or "latest"
-    print(f"Create Rails project image with tag `{tag_name}` based on `{config['image']['base']}`")
+    tag, release_tag = config.get_project_tags()
+    base = config.get_rails_base_tag()
+    tag_name = args.tag or tag
+    print(f"Create Rails project image with tag `{tag_name}` based on `{base}`")
     project_dir = os.getcwd()
-    rails_cmds.build_image_and_create_rod(config['image']['base'], args.tag, project_dir)
+    rails_cmds.build_image(tag_name, project_dir)
 
 def image_handler(args):
     print(args)
 
 def shell_handler(args):
-    cmds = shell_cmd('sh', get_docker_compose_service())
+    cmds = shell_cmd('sh', config.get_docker_compose_service())
     run_cmd(*cmds)
 
 def generate(args):
@@ -58,16 +58,22 @@ def tasks_handler(args):
 
 def task_handler(args):
     cwd = os.getcwd()
-    config = read_config(f'{cwd}/.rod')
-    service = config['service']['web']
-    rails_env = config['rails']['env']
-    cmds = merge_cmds(rails_base_cmd(service),  args.task)
-    run_cmd(*cmds)
+    cfg = config.read_config(f'{cwd}/.rod')
+    service = cfg['service']['web']
+    rails_env = cfg['rails']['env']
+    cmds = merge_cmds(rake_base_cmd(service),  args.task)
+    result = run_cmd(*cmds)
+    if result.returncode == 0:
+        print(f'{", ".join(args.task)} successfully')
+def deploy_commands_handler(args):
+    pass
 
-
-def add_parent_parser(parsers):
-    for parser in parsers:
-        print(parser)
+def deploy_k8s_handler(args):
+    project_dir = os.getcwd()
+    tag, release_tag = config.get_project_tags()
+    cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
+    if run_cmd(cmd).returncode == 0:
+        pass
 
 class BaseArgs(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
@@ -131,7 +137,7 @@ parser_image.set_defaults(func=image_handler)
 parser_project = subparsers.add_parser('project', help='create a new rails project')
 
 parser_project_subparsers = parser_project.add_subparsers(help="subcommands for project")
-parser_new = parser_project_subparsers.add_parser('new', help='create a new rails project')
+parser_new = parser_project_subparsers.add_parser('new', help='create a new rails project', parents=[base_subparser])
 parser_new.add_argument('name', help='project name')
 
 parser_new.add_argument('-v', '--version', dest="version", action='store', help='specify rails version')
@@ -176,6 +182,18 @@ parser_install = parser_bundle_subparsers.add_parser('install', aliases=['s'], h
 
 parser_install.add_argument('-p', '--port', dest="port", action='store', help='Specify the port for the install')
 parser_install.set_defaults(func=bundle_install_handler)
+
+## Deploy
+parser_deploy = subparsers.add_parser('deploy', help='Deploy commands')
+parser_deploy.set_defaults(func=deploy_commands_handler)
+
+## Deploy install
+parser_deploy_subparsers = parser_deploy.add_subparsers(help="subcommands for deploy")
+parser_k8s = parser_deploy_subparsers.add_parser('k8s', help='Deploy to k8s')
+
+parser_k8s.add_argument('--helm', action='store_true', help='Using Helm')
+parser_k8s.add_argument('--istio', action='store_true', help='Add Istio')
+parser_k8s.set_defaults(func=deploy_k8s_handler)
 
 if len(sys.argv) == 1:
     parser.print_help()

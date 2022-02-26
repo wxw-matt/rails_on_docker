@@ -14,7 +14,9 @@ services:
     depends_on:
       - db
     volumes:
+      {% if rails_env != 'production' -%}
       - .:/app
+      {% endif -%}
       - /etc/localtime:/etc/localtime:ro
     working_dir: /app
     command: >

@@ -8,7 +8,12 @@ def get_global_args():
     return _args
 
 def set_global_arg(arg, value):
-    _args.__setattr__(arg,value)
+    global _args
+    setattr(_args, arg,value)
+
+def set_global_args(args):
+    for k,v in args.items():
+        set_global_arg(k, v)
 
 def set_dry_run():
     set_global_arg('dry_run', True)
