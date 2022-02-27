@@ -36,6 +36,12 @@ def k8s_deployment_template(image_tag, **kwargs):
     template = get_env().get_template('k8s-deployment-template.yml')
     return template.render(**kwargs)
 
+# app_name, port
+def k8s_service_template(app_name, **kwargs):
+    kwargs['app_name'] = app_name
+    template = get_env().get_template('k8s-service-template.yml')
+    return template.render(**kwargs)
+
 def dockerfile_pro_template(rails_base_tag, **kwargs):
     kwargs['rails_base_tag'] = rails_base_tag
     template = get_env().get_template('Dockerfile-pro-template')

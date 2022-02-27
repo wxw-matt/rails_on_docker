@@ -88,6 +88,10 @@ def deploy_k8s_handler(args):
     task_handler(args)
     # Generate k8s configuration
     k8s.create_deployment('k8s-deployment.yml')
+    k8s.create_service('k8s-service.yml')
+
+def deploy_service_handler(args):
+    k8s.create_service('k8s-service.yml')
 
 class BaseArgs(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
@@ -208,6 +212,9 @@ parser_k8s = parser_deploy_subparsers.add_parser('k8s', help='Deploy to k8s')
 parser_k8s.add_argument('--helm', action='store_true', help='Using Helm')
 parser_k8s.add_argument('--istio', action='store_true', help='Add Istio')
 parser_k8s.set_defaults(func=deploy_k8s_handler)
+
+parser_service = parser_deploy_subparsers.add_parser('service', help='Deploy a service')
+parser_service.set_defaults(func=deploy_service_handler)
 
 if len(sys.argv) == 1:
     parser.print_help()

@@ -111,6 +111,11 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         yaml_text = template.k8s_deployment_template(release_tag, app_name=name, replicas=2)
         f.write(yaml_text)
 
+    with open(f'{project_dir}/k8s-service.yml','w+') as f:
+        name = os.path.basename(project_dir)
+        yaml_text = template.k8s_service_template(name, port=3000)
+        f.write(yaml_text)
+
     rod_path = path.join(project_dir, 'rod')
     if not path.exists(rod_path):
         os.symlink(path.abspath(sys.argv[0]), rod_path)
