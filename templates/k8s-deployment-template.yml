@@ -1,0 +1,25 @@
+# Parameters: created_at, app_name, image_tag, replicas
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: {{ created_at }}
+  labels:
+    app: {{ app_name }}
+  name: {{ app_name }}
+spec:
+  replicas: {{ replicas }}
+  selector:
+    matchLabels:
+      app: {{ app_name }}
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: {{ app_name }}
+    spec:
+      containers:
+      - image: {{ image_tag }}
+        name: {{ app_name }}-release
+        imagePullPolicy: Never
+        resources: {}
+status: {}

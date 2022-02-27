@@ -1,30 +1,31 @@
 import os, unittest
 from os import path
 from pathlib import Path
-from lib import rails_cmds, template, args_helper
+from lib import rails_cmds, template, args_helper, config
 from tests import helper
 import yaml
 
 class TestGeneratedFiles(helper.TestCase):
     def test_files(self):
         args_helper.set_global_arg('name', self._helper.project_name)
+        app_name = self._helper.project_name
 
-        cwd = os.getcwd()
-        project_dir = os.path.join(cwd, rails_options[1])
-        tag, release_tag = config.generate_project_tags(options.tag, project_dir)
-        create_files_for_the_project(rails_base_tag, options.database, project_dir);
+        project_dir = str(self._helper.project_path)
+        tag = f'{app_name}:latest'
+        release_tag = f'{app_name}-release:latest'
+        rails_base_tag = 'wxwmatt/rails:7.0.2.2-alpine3.15'
         config.write_rod(rails_base_tag, tag, release_tag, 'web', project_dir)
+        rails_cmds.create_files_for_the_project(rails_base_tag, 'mysql', project_dir);
 
-        rails_cmds.create_files_for_the_project('rails-tag:1.0','mysql', str(self._helper.project_path))
         # Database config
         f = open(self._helper.config_path.joinpath('database.yml'))
-        config = yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
         f.close()
         password = 'example'
         for env in ['development', 'production']:
-            self.assertEqual(config[env]['database'], f'{self._helper.project_name}_{env}')
-            self.assertEqual(config[env]['host'], f'db')
-            self.assertTrue(password in config[env]['password'])
+            self.assertEqual(cfg[env]['database'], f'{self._helper.project_name}_{env}')
+            self.assertEqual(cfg[env]['host'], f'db')
+            self.assertTrue(password in cfg[env]['password'])
 
         # Docker compose
         f = open(self._helper.project_path.joinpath('docker-compose.yml'))
@@ -44,8 +45,8 @@ class TestGeneratedFiles(helper.TestCase):
             self.assertTrue('RUN bundle install' in dockerfile)
 
         with open(self._helper.project_path.joinpath('config/database.yml')) as f:
-            config = f.read()
-            self.assertTrue('mysql2' in config)
+            cfg = f.read()
+            self.assertTrue('mysql2' in cfg)
 
     def test_template(self):
         postgres = template.dc_rails_postgres_template('myapp',networks=['rod-network'])

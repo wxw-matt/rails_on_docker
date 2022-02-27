@@ -1,5 +1,12 @@
 import os, configparser
 
+"""
+Note: when creating a project, the current directory is where rod is excuting.
+Project directory will be passed as a parameter to some functions.
+If rod executes in project directory, `os.getcwd()` can be used to get the right
+path.
+"""
+
 _options = {}
 def get_options(options):
     global _options
@@ -14,20 +21,20 @@ def read_config(config_file=f'{os.getcwd()}/.rod'):
     config.read(config_file)
     return config
 
-def get_rails_base_tag():
-    cwd = os.getcwd()
+def get_rails_base_tag(project_dir=None):
+    cwd = project_dir or os.getcwd()
     config = read_config(f'{cwd}/.rod')
     base = config['image']['base']
     return base
 
-def get_docker_compose_service():
-    cwd = os.getcwd()
+def get_docker_compose_service(project_dir=None):
+    cwd = project_dir or os.getcwd()
     config = read_config(f'{cwd}/.rod')
     service = config['service']['web']
     return service
 
-def get_project_tags():
-    cwd = os.getcwd()
+def get_project_tags(project_dir=None):
+    cwd = project_dir or os.getcwd()
     config = read_config(f'{cwd}/.rod')
     tag = config['image']['tag']
     release_tag = config['image']['release_tag']
@@ -49,7 +56,7 @@ def write_rod(rails_base_tag, tag, release_tag, service,project_dir):
         config['rails']['env'] = 'development'
         config.write(configfile)
 
-
+# image_tag is without image name, i.e., latest, 1.0.1
 def generate_project_tags(image_tag, project_dir):
     tag = project_dir.split('/')[-1]
     release_tag = tag
