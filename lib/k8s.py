@@ -1,6 +1,7 @@
 import yaml
 from kubernetes import client, config
-from lib import cmd_helper, config
+from lib import cmd_helper
+import lib
 
 def create_deployment(deployment_file):
     config.load_kube_config()
@@ -17,7 +18,7 @@ def create_service(service_file, namespace='default'):
     cmds = ['kubectl', 'apply', '-f', service_file]
     cmd_helper.run_cmd(cmds)
     # Get port
-    tag, release_tag = config.get_project_tags()
+    tag, release_tag = lib.config.get_project_tags()
     app_name = tag.split(':')[0]
     cmds = ["kubectl", "get", "svc", app_name, "--namespace", namespace,
             "-o", "jsonpath={.spec.ports[0].nodePort}"]
