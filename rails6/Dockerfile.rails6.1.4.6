@@ -1,4 +1,4 @@
-# Tag: wxwmatt/rails:7.0.2.2-alpine3.15
+# Tag: wxwmatt/rails:6.1.4.6-alpine3.15
 FROM ruby:3.0.3-alpine3.15
 
 RUN set -eux; \
@@ -34,7 +34,7 @@ ENV GEM_HOME=/bundle
 ENV PATH=$PATH:/bundle/bin
 ENV HOME=/app
 RUN gem install nokogiri --platform=ruby
-RUN gem install rails -v 7.0.2.2
+RUN gem install rails -v 6.1.4.6
 
 # Pre-install gems for a typical Rails project
 RUN cd /tmp && rails new for_installing_gems_mysql --database=mysql
