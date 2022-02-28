@@ -1,5 +1,6 @@
 import os
-from lib import config, args_helper
+from lib import config, args_helper, cmd_helper
+
 def get_docker_compose_file():
     docker_compose_file = (args_helper.is_production() and 'docker-compose-pro.yml') or 'docker-compose.yml'
     return docker_compose_file
@@ -42,5 +43,17 @@ def docker_compose_up_cmd(services=[]):
         services = [services]
     return ['docker-compose', '-f', get_docker_compose_file(), 'up', *services]
 
+def docker_compose_shell_cmd(cmd, full_tag, args_for_docker=[]):
+    cmds = [
+        docker_compose_exec_cmd(full_tag, args_for_docker) + [cmd],
+        docker_compose_run_cmd(full_tag, args_for_docker) + [cmd]
+    ]
+    return cmds
+
+
 def build_image_cmd(tag, project_dir, dockerfile='Dockerfile'):
-    return ['docker', 'build', '-f', os.path.join(project_dir,dockerfile), '-t', tag, project_dir]
+    args = ['docker', 'build', '-f', os.path.join(project_dir,dockerfile), '-t', tag, project_dir]
+    if cmd_helper.is_load_supported():
+        args.insert(2, '--load')
+    return args
+

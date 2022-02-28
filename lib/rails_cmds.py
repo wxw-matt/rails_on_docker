@@ -168,6 +168,12 @@ def rails_command_server_handler(args):
 
 def rails_command_console_handler(args):
     options = []
+    project_dir = os.getcwd()
+    tag, release_tag = config.get_project_tags()
+    cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
+    if run_cmd(cmd).returncode == 0:
+        print(f'{release_tag} built successfully')
+
     rails_project_command('console', options)
 
 def rake_assets_compile():

@@ -6,10 +6,10 @@ import time
 
 from lib import config
 from lib import template, docker_cmds, rails_cmds, args_helper
-from lib.cmd_helper import merge_cmds, shell_cmd, run_cmd
+from lib.cmd_helper import merge_cmds, run_cmd
 from lib.rails_cmds import rails_base_cmd, rake_base_cmd, rails_project_command, rails_generate_cmd, rails_generate_controller_cmd, rails_generate_model_cmd, rails_generate_scaffold_cmd
 from lib.rails_cmds import generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
-from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd, build_image_cmd
+from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd, build_image_cmd, docker_compose_shell_cmd
 
 from lib import k8s
 NAME="rod"
@@ -38,7 +38,7 @@ def image_handler(args):
     print(args)
 
 def shell_handler(args):
-    cmds = shell_cmd('sh', config.get_docker_compose_service())
+    cmds = docker_compose_shell_cmd('sh', config.get_docker_compose_service())
     run_cmd(*cmds)
 
 def generate(args):
@@ -88,7 +88,8 @@ def deploy_k8s_handler(args):
     task_handler(args)
     # Generate k8s configuration
     k8s.create_deployment('k8s-deployment.yml')
-    k8s.create_service('k8s-service.yml')
+    if args.service:
+        k8s.create_service('k8s-service.yml')
 
 def deploy_service_handler(args):
     k8s.create_service('k8s-service.yml')
@@ -101,7 +102,7 @@ class BaseArgs(argparse.Action):
         if self.dest == 'dry_run':
             args_helper.set_dry_run()
         elif self.dest == 'production':
-            args_helper.set_production()
+            project_dir = os.getcwd()
         else:
             assert(False)
 
@@ -179,7 +180,7 @@ parser_server.add_argument('-p', '--port', dest="port", action='store', help='Sp
 parser_server.set_defaults(func=rails_command_server_handler)
 
 ## Rails console
-parser_console = parser_rails_subparsers.add_parser('console', help='Create a console Rails rails')
+parser_console = parser_rails_subparsers.add_parser('console', help='Create a console Rails rails', parents=[base_subparser])
 
 parser_console.set_defaults(func=rails_command_console_handler)
 
@@ -209,6 +210,7 @@ parser_deploy.set_defaults(func=deploy_commands_handler)
 parser_deploy_subparsers = parser_deploy.add_subparsers(help="subcommands for deploy")
 parser_k8s = parser_deploy_subparsers.add_parser('k8s', help='Deploy to k8s')
 
+parser_k8s.add_argument('-s', '--service', action='store_true', help='Expose as a Kubernetes service')
 parser_k8s.add_argument('--helm', action='store_true', help='Using Helm')
 parser_k8s.add_argument('--istio', action='store_true', help='Add Istio')
 parser_k8s.set_defaults(func=deploy_k8s_handler)
