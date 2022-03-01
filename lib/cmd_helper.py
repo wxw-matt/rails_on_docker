@@ -20,6 +20,11 @@ def run_cmd(cmd, cmd_alt=None, output_error=True, output_stdout=True):
 
 # Docker version 20.10.11, build dea9396
 def run_cmd_no_dry_run(cmd, cmd_alt=None, output_error=True, output_stdout=True):
+
+    if args_helper.is_trace():
+        print('cmd: ' + ' '.join(cmd))
+        if cmd_alt:
+            print('cmd alt: ' + ' '.join(cmd_alt))
     kwargs = {}
     if not output_stdout:
         kwargs = dict(stdout=subprocess.PIPE, **kwargs)

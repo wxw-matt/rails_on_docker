@@ -22,6 +22,13 @@ def is_dry_run():
     global _args
     return hasattr(_args, 'dry_run') and _args.dry_run
 
+def set_trace():
+    set_global_arg('trace', True)
+
+def is_trace():
+    global _args
+    return hasattr(_args, 'trace') and _args.trace
+
 def set_production():
     set_global_arg('production', True)
 

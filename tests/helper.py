@@ -32,7 +32,6 @@ class Helper:
         self._config_path.mkdir(parents=True, exist_ok=True)
 
     def remove_dirs(self, path=None):
-        return
         path = path or self.project_path
         for child in path.iterdir():
             if child.is_dir():
@@ -52,7 +51,8 @@ class TestCase(unittest.TestCase):
         self._helper.make_project_dirs()
 
     def tearDown(self):
-        self._helper.remove_dirs()
+        if not os.getenv('KEEP'):
+            self._helper.remove_dirs()
 
 
 if __name__ == '__main__':

@@ -4,8 +4,8 @@ import argparse
 import signal
 import time
 
-from lib import config
-from lib import template, docker_cmds, rails_cmds, args_helper
+from lib.config import RodConfig, rod_config
+from lib import config, template, docker_cmds, rails_cmds, args_helper
 from lib.cmd_helper import merge_cmds, run_cmd
 from lib.rails_cmds import rails_base_cmd, rake_base_cmd, rails_project_command, rails_generate_cmd, rails_generate_controller_cmd, rails_generate_model_cmd, rails_generate_scaffold_cmd
 from lib.rails_cmds import generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
@@ -19,15 +19,12 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-
-# Docker composer postgresql template
-
 def project(args):
     print(args)
     print("project")
 
 def build_image_handler(args):
-    tag, release_tag = config.get_project_tags()
+    tag = RodConfig.instance.image.tag
     base = config.get_rails_base_tag()
     tag_name = args.tag or tag
     print(f"Create Rails project image with tag `{tag_name}` based on `{base}`")
@@ -57,18 +54,19 @@ def bundle_install_handler(args):
 def tasks_handler(args):
     print(args)
 
+@rod_config
 def task_handler(args):
     cwd = os.getcwd()
-    cfg = config.read_config(f'{cwd}/.rod')
-    service = cfg['service']['web']
-    rails_env = cfg['rails']['env']
+    service = RodConfig.instance.docker_compose.service
     cmds = merge_cmds(rake_base_cmd(service),  args.task)
     result = run_cmd(*cmds)
     if result.returncode == 0:
         print(f'{", ".join(args.task)} successfully')
+
 def deploy_commands_handler(args):
     pass
 
+@rod_config
 def deploy_k8s_handler(args):
     args_helper.set_production()
     project_dir = os.getcwd()
@@ -88,9 +86,10 @@ def deploy_k8s_handler(args):
     task_handler(args)
     # Generate k8s configuration
     k8s.create_deployment('k8s-deployment.yml')
-    if args.service:
+    if hasattr(args,'service') and args.service:
         k8s.create_service('k8s-service.yml')
 
+@rod_config
 def deploy_service_handler(args):
     k8s.create_service('k8s-service.yml')
 
@@ -101,10 +100,10 @@ class BaseArgs(argparse.Action):
         setattr(namespace, self.dest, True)
         if self.dest == 'dry_run':
             args_helper.set_dry_run()
-        elif self.dest == 'production':
-            project_dir = os.getcwd()
-        else:
-            assert(False)
+        if self.dest == 'trace':
+            args_helper.set_trace()
+        if self.dest == 'production':
+            args_helper.set_production()
 
 
 parser = argparse.ArgumentParser(prog=NAME)
@@ -112,6 +111,7 @@ subparsers = parser.add_subparsers(help='sub-command help')
 
 base_subparser = argparse.ArgumentParser(add_help=False)
 base_subparser.add_argument('--dry-run', nargs=0, action=BaseArgs)
+base_subparser.add_argument('--trace', nargs=0, action=BaseArgs)
 base_subparser.add_argument('--production', action=BaseArgs)
 
 # Shell
@@ -180,7 +180,7 @@ parser_server.add_argument('-p', '--port', dest="port", action='store', help='Sp
 parser_server.set_defaults(func=rails_command_server_handler)
 
 ## Rails console
-parser_console = parser_rails_subparsers.add_parser('console', help='Create a console Rails rails', parents=[base_subparser])
+parser_console = parser_rails_subparsers.add_parser('console', help='Start a Rails console', parents=[base_subparser])
 
 parser_console.set_defaults(func=rails_command_console_handler)
 
@@ -197,9 +197,7 @@ parser_bundle.set_defaults(func=bundle_commands_handler)
 
 ## Bundle install
 parser_bundle_subparsers = parser_bundle.add_subparsers(help="subcommands for bundle")
-parser_install = parser_bundle_subparsers.add_parser('install', aliases=['s'], help='Start a Rails install')
-
-parser_install.add_argument('-p', '--port', dest="port", action='store', help='Specify the port for the install')
+parser_install = parser_bundle_subparsers.add_parser('install', aliases=['s'], help='Bundle install')
 parser_install.set_defaults(func=bundle_install_handler)
 
 ## Deploy
@@ -210,13 +208,14 @@ parser_deploy.set_defaults(func=deploy_commands_handler)
 parser_deploy_subparsers = parser_deploy.add_subparsers(help="subcommands for deploy")
 parser_k8s = parser_deploy_subparsers.add_parser('k8s', help='Deploy to k8s')
 
-parser_k8s.add_argument('-s', '--service', action='store_true', help='Expose as a Kubernetes service')
-parser_k8s.add_argument('--helm', action='store_true', help='Using Helm')
-parser_k8s.add_argument('--istio', action='store_true', help='Add Istio')
+parser_k8s.add_argument('-s', '--service', action='store_true', default=False, help='Expose as a Kubernetes service')
+parser_k8s.add_argument('--helm', action='store_true', default=False, help='Using Helm')
+parser_k8s.add_argument('--istio', action='store_true', default=False, help='Add Istio')
 parser_k8s.set_defaults(func=deploy_k8s_handler)
 
 parser_service = parser_deploy_subparsers.add_parser('service', help='Deploy a service')
 parser_service.set_defaults(func=deploy_service_handler)
+
 
 if len(sys.argv) == 1:
     parser.print_help()

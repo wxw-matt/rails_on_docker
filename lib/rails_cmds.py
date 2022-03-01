@@ -44,25 +44,31 @@ def rails_generate_model_cmd(full_tag):
 def rails_generate_scaffold_cmd(full_tag):
     return merge_cmds(rails_generate_cmd(full_tag),  ['scaffold'])
 
+@config.rod_config
 def generate_controller(full_tag, options):
     args = merge_cmds(rails_generate_controller_cmd(full_tag) , [options.NAME] + options.actions)
     run_cmd(*args)
 
+@config.rod_config
 def generate_model(full_tag, options):
     args = merge_cmds(rails_generate_model_cmd(full_tag) , [options.NAME] + options.fields)
     run_cmd(*args)
 
+@config.rod_config
 def generate_scaffold(full_tag, options):
     args = merge_cmds(rails_generate_scaffold_cmd(full_tag) , [options.NAME] + options.fields)
     run_cmd(*args)
 
 
+@config.rod_config
 def generate_controller_handler(args):
     generate_controller(config.get_docker_compose_service(), args)
 
+@config.rod_config
 def generate_model_handler(args):
     generate_model(config.get_docker_compose_service(), args)
 
+@config.rod_config
 def generate_scaffold_handler(args):
     generate_scaffold(config.get_docker_compose_service(), args)
 
@@ -162,10 +168,12 @@ def new_project_handler(args):
 def rails_command_handler(args):
     print(args)
 
+@config.rod_config
 def rails_command_server_handler(args):
     cmd = docker_compose_up_cmd('web')
     run_cmd(cmd)
 
+@config.rod_config
 def rails_command_console_handler(args):
     options = []
     project_dir = os.getcwd()
@@ -176,10 +184,12 @@ def rails_command_console_handler(args):
 
     rails_project_command('console', options)
 
+@config.rod_config
 def rake_assets_compile():
     full_tag = config.get_docker_compose_service()
     rake_base_cmd(full_tag, 'assets:precompile')
 
+@config.rod_config
 def build_production_image(args):
     # Compile assets
     # Build the image
