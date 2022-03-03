@@ -19,6 +19,7 @@ class RodConfig(object):
     instance = None
     def __init__(self, config_file):
         super().__init__()
+        self._project_dir = os.path.dirname(os.path.abspath(config_file))
         self._config_file = config_file
         self._config = read_config(config_file)
 
@@ -30,6 +31,11 @@ class RodConfig(object):
     def load(self, config_file):
         self.instance = RodConfig(config_file)
         return self.instance
+
+    @property
+    def project_dir(self):
+        return self._project_dir
+
 
     @property
     def config(self):

@@ -7,8 +7,7 @@ import time
 from lib.config import RodConfig, rod_config
 from lib import config, template, docker_cmds, rails_cmds, args_helper
 from lib.cmd_helper import merge_cmds, run_cmd
-from lib.rails_cmds import rails_base_cmd, rake_base_cmd, rails_project_command, rails_generate_cmd, rails_generate_controller_cmd, rails_generate_model_cmd, rails_generate_scaffold_cmd
-from lib.rails_cmds import generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
+from lib.rails_cmds import rake_tasks, generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
 from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd, build_image_cmd, docker_compose_shell_cmd
 
 from lib import k8s
@@ -56,12 +55,7 @@ def tasks_handler(args):
 
 @rod_config
 def task_handler(args):
-    cwd = os.getcwd()
-    service = RodConfig.instance.docker_compose.service
-    cmds = merge_cmds(rake_base_cmd(service),  args.task)
-    result = run_cmd(*cmds)
-    if result.returncode == 0:
-        print(f'{", ".join(args.task)} successfully')
+    rake_tasks(args)
 
 def deploy_commands_handler(args):
     pass

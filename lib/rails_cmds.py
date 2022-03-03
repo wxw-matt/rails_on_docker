@@ -171,18 +171,25 @@ def rails_command_handler(args):
 @config.rod_config
 def rails_command_server_handler(args):
     cmd = docker_compose_up_cmd('web')
+    if args_helper.is_production():
+        build_production_image(None)
     run_cmd(cmd)
 
 @config.rod_config
 def rails_command_console_handler(args):
     options = []
     project_dir = os.getcwd()
-    tag, release_tag = config.get_project_tags()
-    cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
-    if run_cmd(cmd).returncode == 0:
-        print(f'{release_tag} built successfully')
-
+    if args_helper.is_production():
+        build_production_image(None)
     rails_project_command('console', options)
+
+@config.rod_config
+def rake_tasks(args):
+    service = config.RodConfig.instance.docker_compose.service
+    cmds = merge_cmds(rake_base_cmd(service),  args.task)
+    result = run_cmd(*cmds)
+    if result.returncode == 0:
+        print(f'{", ".join(args.task)} successfully')
 
 @config.rod_config
 def rake_assets_compile():
@@ -191,6 +198,9 @@ def rake_assets_compile():
 
 @config.rod_config
 def build_production_image(args):
-    # Compile assets
     # Build the image
-    rake_assets_compile()
+    tag, release_tag = config.get_project_tags()
+    project_dir = config.RodConfig.instance.project_dir
+    cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
+    if run_cmd(cmd).returncode == 0:
+        print(f'{release_tag} built successfully')
