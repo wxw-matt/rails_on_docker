@@ -9,6 +9,8 @@ def get_env(directory='templates'):
 
 def dc_rails_template(db, image_tag,  **kwargs):
     assert( db in ['postgres', 'mariadb', 'sqlite3'] )
+    if image_tag:
+        image_tag = image_tag.replace('_', '-')
     kwargs['image_tag'] = image_tag
     template = get_env().get_template('rails-%s-template.yml' % db)
     return template.render(**kwargs)
@@ -30,14 +32,22 @@ def dc_mariadb_config(db_host, app_name, dev_password='example'):
     template = get_env().get_template('mariadb-config-template.yml')
     return template.render(db_host=db_host, app_name=app_name, dev_password=dev_password)
 
+def dc_sqlite3_template(db_host, app_name, dev_password='example'):
+    template = get_env().get_template('sqlite3-config-template.yml')
+    return template.render(db_host=db_host, app_name=app_name, dev_password=dev_password)
+
 # replicas, app_name, created_at
 def k8s_deployment_template(image_tag, **kwargs):
+    if image_tag:
+        image_tag = image_tag.replace('_', '-')
     kwargs['image_tag'] = image_tag
     template = get_env().get_template('k8s-deployment-template.yml')
     return template.render(**kwargs)
 
 # app_name, port
 def k8s_service_template(app_name, **kwargs):
+    if app_name:
+        app_name = app_name.replace('_', '-')
     kwargs['app_name'] = app_name
     template = get_env().get_template('k8s-service-template.yml')
     return template.render(**kwargs)

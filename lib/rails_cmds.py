@@ -76,8 +76,8 @@ def project_handler(args):
     print(args)
 
 def create_files_for_the_project(rails_base_tag, database, project_dir):
-    app_name = args_helper.get_global_args().name
-    tag, release_tag = config.generate_project_tags(None, project_dir)
+    app_name = args_helper.get_global_args().name.replace('_', '-')
+    tag, release_tag = config.generate_project_tags(None, app_name)
     with open(f'{project_dir}/Dockerfile', 'w+') as f:
         f.write(template.dockerfile_template(rails_base_tag))
 
@@ -108,18 +108,17 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         if database == 'mysql':
             f.write(template.dc_mariadb_config(None, **kwargs))
         elif database == 'postgresql':
-            f.write(template.dc_rails_postgres_template(None, **kwargs))
+            f.write(template.dc_postgres_config(None, **kwargs))
         else:
-            f.write(template.dc_rails_sqlite3_template(None, **kwargs))
+            f.write(template.dc_sqlite3_template(None, **kwargs))
 
+    import pdb;pdb.set_trace()
     with open(f'{project_dir}/k8s-deployment.yml','w+') as f:
-        name = os.path.basename(project_dir)
-        yaml_text = template.k8s_deployment_template(release_tag, app_name=name, replicas=2)
+        yaml_text = template.k8s_deployment_template(release_tag, app_name=app_name, replicas=2)
         f.write(yaml_text)
 
     with open(f'{project_dir}/k8s-service.yml','w+') as f:
-        name = os.path.basename(project_dir)
-        yaml_text = template.k8s_service_template(name, port=3000)
+        yaml_text = template.k8s_service_template(app_name, port=3000)
         f.write(yaml_text)
 
     rod_path = path.join(project_dir, 'rod')
@@ -141,12 +140,15 @@ def generate_rails_project(options, rails_options):
     res =  run_cmd(cmd)
     if not args_helper.is_dry_run():
         if res.returncode == 0:
-            project_dir = os.path.join(cwd, rails_options[1])
-            tag, release_tag = config.generate_project_tags(options.tag, project_dir)
+            app_name = rails_options[1]
+            project_dir = os.path.join(cwd, app_name)
+
             create_files_for_the_project(rails_base_tag, options.database, project_dir);
-            config.write_rod(rails_base_tag, tag, release_tag, 'web', project_dir)
+            fn = config.write_rod(rails_base_tag, app_name, options.tag, project_dir, 'web')
+            config.RodConfig.load(fn)
+
             if not options.skip_bundle:
-                build_image(tag, project_dir)
+                build_image(config.RodConfig.instance.image.tag, project_dir)
             else:
                 lock_gemfile(rails_base_tag,project_dir)
 

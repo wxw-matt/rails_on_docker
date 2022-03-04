@@ -71,6 +71,7 @@ def deploy_k8s_handler(args):
     # 3. Run db:create and db:migrate to initialise the database
     # 4. Generate k8s configuration files: deployment and service files
     # 5. Perform the deployment
+    release_tag = release_tag.replace('_', '-')
     cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
     if run_cmd(cmd).returncode == 0:
         print(f'{release_tag} built successfully')

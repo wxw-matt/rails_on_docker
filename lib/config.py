@@ -28,8 +28,9 @@ class RodConfig(object):
         self._image= RodConfigImage(self._config['image'])
 
     @classmethod
-    def load(self, config_file):
-        self.instance = RodConfig(config_file)
+    def load(self, config_file, reload=False):
+        if reload or not self.instance:
+            self.instance = RodConfig(config_file)
         return self.instance
 
     @property
@@ -92,10 +93,15 @@ class RodConfigApp(object):
     def __init__(self, rails):
         super().__init__()
         self._env = rails['env']
+        self._name = rails['name']
 
     @property
     def env(self):
         return self._env
+
+    @property
+    def name(self):
+        return self._name
 
 
 _options = {}
@@ -138,7 +144,8 @@ def get_project_tags(project_dir=None):
     release_tag = cfg.image.release_tag
     return (tag, release_tag)
 
-def write_rod(rails_base_tag, tag, release_tag, service,project_dir):
+def write_rod(rails_base_tag, app_name, tag, project_dir, service='web'):
+    tag, release_tag = generate_project_tags(tag, app_name.replace('_', '-'))
     fn = f'{project_dir}/.rod'
     config = read_config(fn)
     for item in ['image', 'docker-compose', 'app']:
@@ -154,13 +161,15 @@ def write_rod(rails_base_tag, tag, release_tag, service,project_dir):
         config['image']['release_tag'] = release_tag
         config['image']['base'] = rails_base_tag
 
+        config['app']['name'] = app_name
         config['app']['env'] = 'development'
         config.write(configfile)
+        
     return fn
 
 # image_tag is without image name, i.e., latest, 1.0.1
-def generate_project_tags(image_tag, project_dir):
-    tag = project_dir.split('/')[-1]
+def generate_project_tags(image_tag, app_name):
+    tag = app_name
     release_tag = tag
     if image_tag:
         if ':' in image_tag:
