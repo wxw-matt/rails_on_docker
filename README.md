@@ -1,11 +1,60 @@
-# Rails on Docker
-Tools and Docker images to make a fast Ruby on Rails development environment. With the production templates, moving from development to production will be seamless.
 
-# Installation
+# Rails on Docker (ROD, a part of XOD)
+ROD is like a rocket that brings you from ground (scratch) to the space (Kubernetes).
 
-# Usage
+## Quick Tutorial
 
-## Create a New Rails Project
+> Before start, please check out if you have Docker (version 20.10.12 or later), minikube, and Python (3.6.8 or later) installed on your computer.
+### Clone this project and go the directory
+```bash
+git clone git@github.com:wxw-matt/rails_on_docker.git ~/rod
+cd ~/rod
+# Install dependencies for rod
+pip install -r requirements.txt
+```
+### Create a Rails project
+```bash
+./rod project new -v 7 -s first_rod
+```
+### Add some pages to serve users
+```bash
+cd first_rod
+./rod g scaffold post title:string content:text
+```
+### Deploy to Kubernetes
+```bash
+./rod deploy k8s
+```
+### Expose to users
+```bash
+./rod deploy service
+```
+After the previous command performs successfully, you would see the following output:
+```bash
+service/first-rod created
+Service is listening at address http://localhost:port
+```
+The port varies with each deployment.
+### Access the pages
+```bash
+http://localhost:port/posts
+```
+## Installation
+
+### System Requirement
+Any operating systems that can run Docker (version 20.10.12 or later).
+
+### Commands to Get Rod Ready on Your Computer
+```bash
+git clone git@github.com:wxw-matt/rails_on_docker.git ~/rod
+cd ~/rod
+# Install dependencies for rod
+pip install -r requirements.txt
+```
+
+## Usage
+
+### Create a New Rails Project
 The following command will Create a new project named `t1` based on `Rails 7` and using `MySQL` as the database.
 ```
 ./rod project new t1 -v 7 -m
@@ -24,7 +73,7 @@ If a major version is given, the latest major version will be used to create the
 
 The docker image for the new image will be created as well.
 
-## Using Rails Generator
+### Using Rails Generator
 Generate a scaffold:
 
 ```

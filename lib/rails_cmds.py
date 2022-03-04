@@ -82,7 +82,7 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         f.write(template.dockerfile_template(rails_base_tag))
 
     with open(f'{project_dir}/Dockerfile-pro', 'w+') as f:
-        f.write(template.dockerfile_pro_template(rails_base_tag))
+        f.write(template.dockerfile_pro_template(rails_base_tag,sqlite3=True))
 
     kwargs = dict(networks=['rod-network'])
     with open(f'{project_dir}/docker-compose.yml', 'w+') as f:
@@ -113,7 +113,7 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
             f.write(template.dc_sqlite3_template(None, **kwargs))
 
     with open(f'{project_dir}/k8s-deployment.yml','w+') as f:
-        yaml_text = template.k8s_deployment_template(release_tag, app_name=app_name, replicas=2)
+        yaml_text = template.k8s_deployment_template(release_tag, app_name=app_name, replicas=1)
         f.write(yaml_text)
 
     with open(f'{project_dir}/k8s-service.yml','w+') as f:
