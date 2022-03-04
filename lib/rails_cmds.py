@@ -112,7 +112,6 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
         else:
             f.write(template.dc_sqlite3_template(None, **kwargs))
 
-    import pdb;pdb.set_trace()
     with open(f'{project_dir}/k8s-deployment.yml','w+') as f:
         yaml_text = template.k8s_deployment_template(release_tag, app_name=app_name, replicas=2)
         f.write(yaml_text)
@@ -203,6 +202,11 @@ def build_production_image(args):
     # Build the image
     tag, release_tag = config.get_project_tags()
     project_dir = config.RodConfig.instance.project_dir
+    envs = None
+    if args_helper.is_minikube():
+        envs = docker_cmds.get_minikube_envs()
+
+    import pdb;pdb.set_trace()
     cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
-    if run_cmd(cmd).returncode == 0:
+    if run_cmd(cmd,env=envs).returncode == 0:
         print(f'{release_tag} built successfully')

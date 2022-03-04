@@ -35,3 +35,10 @@ def set_production():
 def is_production():
     global _args
     return hasattr(_args, 'production') and _args.production
+
+def set_minikube():
+    set_global_arg('minikube', True)
+
+def is_minikube():
+    global _args
+    return hasattr(_args, 'minikube') and _args.minikube

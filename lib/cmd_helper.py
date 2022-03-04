@@ -11,21 +11,20 @@ def is_load_supported():
 
 
 # Docker version 20.10.11, build dea9396
-def run_cmd(cmd, cmd_alt=None, output_error=True, output_stdout=True):
+def run_cmd(cmd, cmd_alt=None, output_error=True, output_stdout=True, **kwargs):
     if args_helper.is_dry_run():
         print('Dry run: ' + ' '.join(cmd))
         return
-    return run_cmd_no_dry_run(cmd, cmd_alt, output_error, output_stdout)
+    return run_cmd_no_dry_run(cmd, cmd_alt, output_error, output_stdout, **kwargs)
 
 
 # Docker version 20.10.11, build dea9396
-def run_cmd_no_dry_run(cmd, cmd_alt=None, output_error=True, output_stdout=True):
+def run_cmd_no_dry_run(cmd, cmd_alt=None, output_error=True, output_stdout=True, **kwargs):
 
     if args_helper.is_trace():
         print('cmd: ' + ' '.join(cmd))
         if cmd_alt:
             print('cmd alt: ' + ' '.join(cmd_alt))
-    kwargs = {}
     if not output_stdout:
         kwargs = dict(stdout=subprocess.PIPE, **kwargs)
 

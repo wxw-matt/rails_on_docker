@@ -63,18 +63,16 @@ def deploy_commands_handler(args):
 @rod_config
 def deploy_k8s_handler(args):
     args_helper.set_production()
+    if args.minikube:
+        args_helper.set_minikube()
     project_dir = os.getcwd()
-    tag, release_tag = config.get_project_tags()
     # 1. Build pro image
     # 2. Rails project will use a separate database, such as RDS,
     #    so that it will have the configuration in `production` section
     # 3. Run db:create and db:migrate to initialise the database
     # 4. Generate k8s configuration files: deployment and service files
     # 5. Perform the deployment
-    release_tag = release_tag.replace('_', '-')
-    cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
-    if run_cmd(cmd).returncode == 0:
-        print(f'{release_tag} built successfully')
+    rails_cmds.build_production_image(args)
     args = args_helper.CustomArgs()
     args.task = ['db:create', 'db:migrate']
     # Rake tasks
@@ -203,6 +201,7 @@ parser_deploy.set_defaults(func=deploy_commands_handler)
 parser_deploy_subparsers = parser_deploy.add_subparsers(help="subcommands for deploy")
 parser_k8s = parser_deploy_subparsers.add_parser('k8s', help='Deploy to k8s')
 
+parser_k8s.add_argument('-m', '--minikube', action='store_true', default=True, help='Build image using minikube')
 parser_k8s.add_argument('-s', '--service', action='store_true', default=False, help='Expose as a Kubernetes service')
 parser_k8s.add_argument('--helm', action='store_true', default=False, help='Using Helm')
 parser_k8s.add_argument('--istio', action='store_true', default=False, help='Add Istio')
