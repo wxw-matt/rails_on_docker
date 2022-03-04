@@ -50,17 +50,6 @@ def docker_compose_shell_cmd(cmd, full_tag, args_for_docker=[]):
     ]
     return cmds
 
-def get_minikube_envs():
-    cmds = ['minikube', 'docker-env']
-    res = cmd_helper.run_cmd_no_dry_run(cmds, output_stdout=False)
-    output = res.stdout.decode("UTF-8")
-    env_data = list(filter(lambda x: '=' in x, output.split()))
-    envs = {}
-    for data in env_data:
-        name, value = data.replace('"', '').split('=')
-        envs[name]=value
-    return envs
-
 def build_image_cmd(tag, project_dir, dockerfile='Dockerfile'):
     args = ['docker', 'build', '-f', os.path.join(project_dir,dockerfile), '-t', tag, project_dir]
     if cmd_helper.is_load_supported():

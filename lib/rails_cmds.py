@@ -3,7 +3,7 @@ from os import path
 from lib import config
 from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd
 from lib.cmd_helper import run_cmd, merge_cmds
-from lib import args_helper, template, docker_cmds
+from lib import args_helper, template, docker_cmds, minikube
 
 _versions = {
     '7.0.1': 'wxwmatt/rails:7.0.1-alpine3.15',
@@ -203,10 +203,9 @@ def build_production_image(args):
     tag, release_tag = config.get_project_tags()
     project_dir = config.RodConfig.instance.project_dir
     envs = None
-    if args_helper.is_minikube():
-        envs = docker_cmds.get_minikube_envs()
+    if args_helper.is_minikube() and minikube.is_minikube_running():
+        envs = minikube.get_minikube_envs()
 
-    import pdb;pdb.set_trace()
     cmd = docker_cmds.build_image_cmd(release_tag, project_dir, dockerfile='Dockerfile-pro')
     if run_cmd(cmd,env=envs).returncode == 0:
         print(f'{release_tag} built successfully')
