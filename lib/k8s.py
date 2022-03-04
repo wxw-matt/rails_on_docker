@@ -1,6 +1,6 @@
 import yaml
 from kubernetes import client, config
-from lib import cmd_helper
+from lib import cmd_helper, args_helper
 import lib
 
 def create_deployment(deployment_file):
@@ -30,4 +30,8 @@ def create_service(service_file, namespace='default'):
             "-o", "jsonpath={.status.loadBalancer.ingress[0].hostname}"]
     result = cmd_helper.run_cmd(cmds, output_stdout=False)
     hostname = result.stdout.decode("UTF-8")
+    if not hostname.strip() and args_helper.is_minikube():
+        cmds = ["minikube", "ip"]
+        result = cmd_helper.run_cmd(cmds, output_stdout=False)
+        hostname = result.stdout.decode("UTF-8").strip()
     print(f'Service is listening at address http://{hostname}:{port}')

@@ -84,6 +84,8 @@ def deploy_k8s_handler(args):
 
 @rod_config
 def deploy_service_handler(args):
+    if args.minikube:
+        args_helper.set_minikube()
     k8s.create_service('k8s-service.yml')
 
 class BaseArgs(argparse.Action):
@@ -208,6 +210,7 @@ parser_k8s.add_argument('--istio', action='store_true', default=False, help='Add
 parser_k8s.set_defaults(func=deploy_k8s_handler)
 
 parser_service = parser_deploy_subparsers.add_parser('service', help='Deploy a service')
+parser_service.add_argument('-m', '--minikube', action='store_true', default=True, help='Build image using minikube')
 parser_service.set_defaults(func=deploy_service_handler)
 
 
