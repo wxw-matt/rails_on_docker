@@ -1,0 +1,9 @@
+FROM {rails_base_tag}
+
+RUN mkdir -p /app
+ENV HOME /app
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+
+EXPOSE 3000
+CMD ["rails", "server", "-b", "0.0.0.0"]

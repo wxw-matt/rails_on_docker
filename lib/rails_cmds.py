@@ -76,10 +76,11 @@ def project_handler(args):
     print(args)
 
 def create_files_for_the_project(rails_base_tag, database, project_dir):
-    app_name = args_helper.get_global_args().name.replace('_', '-')
-    tag, release_tag = config.generate_project_tags(None, app_name)
+    app_name = args_helper.get_global_args().name
+    image_name = app_name.replace('_', '-')
+    tag, release_tag = config.generate_project_tags(None, image_name)
     with open(f'{project_dir}/Dockerfile', 'w+') as f:
-        f.write(template.dockerfile_template(rails_base_tag))
+        f.write(template.dockerfile_dev_template(rails_base_tag))
 
     with open(f'{project_dir}/Dockerfile-pro', 'w+') as f:
         f.write(template.dockerfile_pro_template(rails_base_tag,sqlite3=True))
@@ -94,7 +95,7 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
             f.write(template.dc_rails_sqlite3_template(None, **kwargs))
 
     with open(f'{project_dir}/docker-compose-pro.yml', 'w+') as f:
-        image_tag = f'{app_name}:latest'
+        image_tag = f'{image_name}:latest'
         kwargs = dict(rails_env='production',**kwargs)
         if database == 'mysql':
             f.write(template.dc_rails_mariadb_template(image_tag, **kwargs))
@@ -113,11 +114,11 @@ def create_files_for_the_project(rails_base_tag, database, project_dir):
             f.write(template.dc_sqlite3_template(None, **kwargs))
 
     with open(f'{project_dir}/k8s-deployment.yml','w+') as f:
-        yaml_text = template.k8s_deployment_template(release_tag, app_name=app_name, replicas=1)
+        yaml_text = template.k8s_deployment_template(release_tag, app_name=image_name, replicas=1)
         f.write(yaml_text)
 
     with open(f'{project_dir}/k8s-service.yml','w+') as f:
-        yaml_text = template.k8s_service_template(app_name, port=3000)
+        yaml_text = template.k8s_service_template(image_name, port=3000)
         f.write(yaml_text)
 
     rod_path = path.join(project_dir, 'rod')

@@ -14,7 +14,7 @@ class TestConfig(helper.TestCase):
         tag = f'{app_name}:latest'
         release_tag = f'{app_name}-release:latest'
         rails_base_tag = 'wxwmatt/rails:7.0.2.2-alpine3.15'
-        file = config.write_rod(rails_base_tag, tag, release_tag, 'app', project_dir)
+        file = config.write_rod(rails_base_tag, app_name, tag, project_dir, 'app')
         rod_config = config.RodConfig(file)
 
         self.assertEqual(rod_config.image.tag, tag)

@@ -14,7 +14,7 @@ class TestGeneratedFiles(helper.TestCase):
         tag = f'{app_name}:latest'
         release_tag = f'{app_name}-release:latest'
         rails_base_tag = 'wxwmatt/rails:7.0.2.2-alpine3.15'
-        config.write_rod(rails_base_tag, tag, release_tag, 'web', project_dir)
+        config.write_rod(rails_base_tag, app_name, tag, project_dir)
         rails_cmds.create_files_for_the_project(rails_base_tag, 'mysql', project_dir);
 
         # Database config
