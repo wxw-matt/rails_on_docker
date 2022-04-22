@@ -165,6 +165,8 @@ def new_project_handler(args):
     if args.skip_bundle:
         rails_options.append('-B')
         args_helper.set_global_args({'skip_bundle': True})
+    if args.api:
+        rails_options.append('--api')
     generate_rails_project(args, rails_options)
 
 def rails_command_handler(args):

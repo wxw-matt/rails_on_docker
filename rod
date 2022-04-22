@@ -22,7 +22,14 @@ def project(args):
     print(args)
     print("project")
 
+@rod_config
 def build_image_handler(args):
+    service = RodConfig.instance.docker_compose.service
+    project_name = RodConfig.instance.docker_compose.project_name
+    image_name = f'{project_name}_{service}'
+    cmds = ['docker', 'image', 'rm', image_name, project_name]
+    run_cmd(cmds)
+
     tag = RodConfig.instance.image.tag
     base = config.get_rails_base_tag()
     tag_name = args.tag or tag
@@ -48,7 +55,10 @@ def bundle_commands_handler(args):
     print(args)
 
 def bundle_install_handler(args):
-    print(args)
+    base = config.get_rails_base_tag()
+    project_dir = os.getcwd()
+    cmd = docker_project_base_cmd(base,project_dir) + ['bundle', 'install']
+    run_cmd(cmd)
 
 def tasks_handler(args):
     print(args)
@@ -108,7 +118,7 @@ base_subparser.add_argument('--trace', nargs=0, action=BaseArgs)
 base_subparser.add_argument('--production', action=BaseArgs)
 
 # Shell
-parser_generate = subparsers.add_parser('Shell',aliases=['sh'], help='Attach to the shell')
+parser_generate = subparsers.add_parser('shell',aliases=['sh'], help='Attach to the shell')
 parser_generate.set_defaults(func=shell_handler)
 
 # Generator
@@ -139,7 +149,7 @@ parser_image = subparsers.add_parser('image', help='Build Rails image')
 
 ## Build image for the Rails project
 parser_image_subparsers = parser_image.add_subparsers(help="subcommands for Rails images")
-parser_build = parser_image_subparsers.add_parser('build', help='Create a build Rails image')
+parser_build = parser_image_subparsers.add_parser('build', help='Create a build Rails image', parents=[base_subparser])
 
 parser_build.add_argument('-t', '--tag', dest="tag", action='store', help='Specify image tag')
 parser_build.set_defaults(func=build_image_handler)
@@ -158,6 +168,7 @@ parser_new.add_argument('-m', '--mysql', dest="database", action='store_const', 
 parser_new.add_argument('-p', '--pg', dest="database", action='store_const', const="postgresql",  help='using postgresql')
 parser_new.add_argument('-s', '--sqlite3', dest="database", action='store_const', const="sqlite3", help='using sqlite3')
 parser_new.add_argument('-b', '--skip-bundle', action='store_true', help='Don\'t run bundle install')
+parser_new.add_argument('-a', '--api', action='store_true', help='Create Rails API application')
 parser_new.set_defaults(func=new_project_handler)
 parser_project.set_defaults(func=project_handler)
 

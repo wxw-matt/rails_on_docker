@@ -14,6 +14,8 @@ def rod_config(func):
         func(*args, **kwargs)
     return wrapper
 
+def get_base_dir():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
 class RodConfig(object):
     instance = None
@@ -164,7 +166,7 @@ def write_rod(rails_base_tag, app_name, tag, project_dir, service='web'):
         config['app']['name'] = app_name
         config['app']['env'] = 'development'
         config.write(configfile)
-        
+
     return fn
 
 # image_tag is without image name, i.e., latest, 1.0.1

@@ -1,8 +1,11 @@
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from pathlib import Path
+from lib.config import get_base_dir
+import os
 
 def get_env(directory='templates'):
     env = Environment(
-        loader=FileSystemLoader("templates"),
+        loader=FileSystemLoader([os.path.join(get_base_dir(), directory)]),
         autoescape=select_autoescape()
     )
     return env

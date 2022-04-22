@@ -1,4 +1,4 @@
-FROM {rails_base_tag}
+FROM {{rails_base_tag}}
 
 RUN mkdir -p /app
 ENV HOME /app
