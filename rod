@@ -7,7 +7,7 @@ import time
 from lib.config import RodConfig, rod_config
 from lib import config, template, docker_cmds, rails_cmds, args_helper
 from lib.cmd_helper import merge_cmds, run_cmd
-from lib.rails_cmds import rake_tasks, generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler
+from lib.rails_cmds import rake_tasks, generate_controller_handler, generate_model_handler, generate_scaffold_handler, project_handler, new_project_handler, rails_command_handler, rails_command_server_handler, rails_command_console_handler, rspec_handler
 from lib.docker_cmds import docker_compose_run_cmd, docker_compose_exec_cmd, docker_base_cmd, docker_project_base_cmd, docker_compose_up_cmd, build_image_cmd, docker_compose_shell_cmd
 
 from lib import k8s
@@ -187,6 +187,13 @@ parser_server.set_defaults(func=rails_command_server_handler)
 parser_console = parser_rails_subparsers.add_parser('console', help='Start a Rails console', parents=[base_subparser])
 
 parser_console.set_defaults(func=rails_command_console_handler)
+
+## Rspec
+parser_specs = subparsers.add_parser('spec', help='Run specs', parents=[base_subparser])
+parser_specs.set_defaults(func=rspec_handler)
+
+parser_specs.add_argument('spec', nargs='+', type=str, help='Rake specs, such as db:migrate db:rollback')
+parser_specs.set_defaults(func=rspec_handler)
 
 # Rake tasks
 parser_tasks = subparsers.add_parser('tasks', aliases=['t'], help='Execute rake tasks', parents=[base_subparser])

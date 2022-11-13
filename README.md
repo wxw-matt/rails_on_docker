@@ -108,5 +108,9 @@ tools/build_multiplatform.sh full_tag Dockerfile
 ```
 For example:
 ```bash
-tools/build_multiplatform.sh wxwmatt/rails:7.0.2.2-alpine3.15 rails7/Dockerfile.rails7.0.2.2 
+tools/build_multiplatform.sh wxwmatt/rails:7.0.2.2-alpine3.15 rails7/Dockerfile.rails7.0.2.2
 ```
+
+# TODOs
+* Rebuild  the image before perform `bundle install` (or just remove the image, docker-compopse will build it automatically)
+* Make sure the web container is running, need to fix this error: A server is already running. Check /app/tmp/pids/server.pid.

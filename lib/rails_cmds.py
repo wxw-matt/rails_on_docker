@@ -27,6 +27,13 @@ def rake_base_cmd(full_tag, args_for_docker=[]):
             docker_compose_run_cmd(full_tag, args_for_docker) + ['rake']
             ]
 
+def rspec_base_cmd(full_tag, args_for_docker=[]):
+    rpsec_cmds = ['bin/rspec']
+    return [
+            docker_compose_exec_cmd(full_tag, args_for_docker) + rpsec_cmds,
+            docker_compose_run_cmd(full_tag, args_for_docker) + rpsec_cmds
+            ]
+
 
 def rails_project_command(command, options, args_for_docker=[]):
     cmds = merge_cmds(rails_base_cmd(config.get_docker_compose_service(), args_for_docker),  [command] + options)
@@ -186,6 +193,14 @@ def rails_command_console_handler(args):
     if args_helper.is_production():
         build_production_image(None)
     rails_project_command('console', options)
+
+@config.rod_config
+def rspec_handler(args):
+    service = config.RodConfig.instance.docker_compose.service
+    cmds = merge_cmds(rspec_base_cmd(service),  args.spec)
+    result = run_cmd(*cmds)
+    if result.returncode == 0:
+        print(f'{", ".join(args.spec)} successfully')
 
 @config.rod_config
 def rake_tasks(args):
