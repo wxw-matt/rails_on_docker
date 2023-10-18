@@ -1,0 +1,74 @@
+FROM ruby:3.1.3 as builder
+
+RUN set -eux; \
+        apk add --no-cache \
+                sqlite-dev \
+                mariadb-dev \
+                postgresql-dev \
+                ruby-dev \
+                nodejs \
+                musl-dev \
+                build-base \
+                git \
+#https://pkgs.alpinelinux.org/package/edge/main/aarch64/build-base
+                build-base \
+#https://nokogiri.org/tutorials/installing_nokogiri.html#linux-musl-error-loading-shared-library
+                gcompat \
+#https://en.wikipedia.org/wiki/BusyBox
+                busybox \
+                ca-certificates \
+                libffi-dev \
+                libsodium-dev \
+                curl-dev \
+                vips-dev \
+        ;
+RUN mkdir -p /bundle/cache /app
+ENV GEM_HOME=/bundle
+ENV PATH=$PATH:/bundle/bin
+ENV HOME=/app
+RUN gem install nokogiri --platform=ruby
+RUN gem install rails -v 7.0.1
+
+# Pre-install gems for a typical Rails project
+RUN cd /tmp && rails new for_installing_gems_mysql --database=mysql
+RUN cd /tmp && rails new for_installing_gems_postgres --database=postgresql
+RUN cd /tmp && rails new for_installing_gems_sqlite3 --database=sqlite3
+
+# Cleanup
+RUN rm -rf /tmp/for_installing_gems_mysql
+RUN rm -rf /tmp/for_installing_gems_postgres
+RUN rm -rf /tmp/for_installing_gems_sqlite3
+RUN rm -rf /bundle/cache /bundler/gems/*/.git
+
+FROM ruby:3.0.3-alpine3.15
+
+RUN set -eux; \
+        apk add --no-cache \
+                ruby-dev \
+                nodejs \
+                npm \
+                yarn \
+                make \
+                build-base \
+                tzdata \
+                curl \
+                git \
+#https://pkgs.alpinelinux.org/package/edge/main/aarch64/build-base
+                build-base \
+#https://nokogiri.org/tutorials/installing_nokogiri.html#linux-musl-error-loading-shared-library
+                gcompat \
+#https://en.wikipedia.org/wiki/BusyBox
+                busybox \
+                ca-certificates \
+                imagemagick \
+        ;
+
+ENV GEM_HOME=/bundle
+ENV PATH=$PATH:/bundle/bin
+ENV HOME=/app
+
+COPY --from=builder /bundle/ /bundle
+COPY --from=builder /usr/lib /usr/lib
+
+# make bundle directory writable
+RUN chmod -f a+rw /bundle
